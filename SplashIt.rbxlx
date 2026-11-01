@@ -1,0 +1,2363 @@
+<roblox version="4">
+  <Item class="ReplicatedStorage" referent="0">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="Folder" referent="1">
+      <Properties>
+        <string name="Name">Shared</string>
+      </Properties>
+      <Item class="ModuleScript" referent="2">
+        <Properties>
+          <string name="Name">Config</string>
+          <string name="Source"><![CDATA[--[[
+	SPLASH IT — Configurações do jogo
+	Mude os valores aqui para deixar o jogo mais fácil, mais difícil, maior ou menor.
+]]
+
+local Config = {}
+
+---------------------------------------------------------------------
+-- MAPA
+---------------------------------------------------------------------
+Config.SEED = nil -- número fixo (ex: 1337) = sempre o mesmo mapa | nil = mapa novo a cada servidor
+Config.MAP_SIZE = 2000 -- tamanho do mapa em studs (é um quadrado de MAP_SIZE x MAP_SIZE)
+Config.WATER_LEVEL = 0 -- altura da superfície da água
+Config.WATER_DEPTH = 16 -- profundidade da água
+
+Config.SPAWN_RADIUS = 24 -- raio da plataforma inicial
+Config.SPAWN_HEIGHT = 6 -- altura da plataforma inicial
+
+Config.SCATTER_BLOCKS = 650 -- blocos soltos espalhados pelo mapa
+Config.MONOLITHS = 18 -- cubos gigantes espalhados (pontos de referência)
+Config.RESCUE_STONES = 260 -- pedrinhas baixas pra sair da água
+Config.FADE_BLOCK_CHANCE = 0.1 -- chance de um bloco do caminho ser ROSA (some quando você pisa)
+
+-- Pulo / caminhos (os caminhos são gerados para serem SEMPRE possíveis de pular)
+Config.WALK_SPEED = 20
+Config.JUMP_HEIGHT = 8
+Config.PATH_GAP_MIN = 3 -- distância mínima entre blocos
+Config.PATH_GAP_MAX = 6.5 -- distância máxima entre blocos
+Config.PATH_RISE_MAX = 3 -- quanto um bloco pode ser mais alto que o anterior
+Config.PATH_DROP_MAX = 4 -- quanto um bloco pode ser mais baixo que o anterior
+Config.PATH_MIN_HEIGHT = 2.5
+Config.PATH_MAX_HEIGHT = 45
+
+---------------------------------------------------------------------
+-- GERADORES
+---------------------------------------------------------------------
+Config.GENERATOR_COUNT = 10
+Config.GENERATOR_INNER_RADIUS = { 250, 420 } -- anel de dentro (perto do spawn)
+Config.GENERATOR_OUTER_RADIUS = { 620, 880 } -- anel de fora (longe)
+Config.GENERATOR_HOLD_TIME = 2.5 -- segundos segurando E para ligar
+Config.TOWER_CHANCE = 0.4 -- chance do gerador ficar em cima de uma torre com escada em espiral
+
+---------------------------------------------------------------------
+-- ÁGUA / MONSTRO
+---------------------------------------------------------------------
+Config.WATER_TOUCH_TOLERANCE = 0.35 -- "até um pouquinho" — distância do pé até a água que já conta
+Config.SPAWN_GRACE = 4 -- segundos de proteção depois de nascer
+
+Config.MONSTER_SPAWN_DISTANCE = 120 -- de quão longe ele aparece
+Config.MONSTER_EMERGE_TIME = 1.4 -- tempo que ele leva saindo da água
+Config.MONSTER_BASE_SPEED = 24 -- velocidade (jogador anda a WALK_SPEED)
+Config.MONSTER_SPEED_PER_GENERATOR = 0.7 -- fica mais rápido a cada gerador ligado
+Config.MONSTER_REPEAT_BOOST = 3 -- tocou na água de novo durante a perseguição? fica mais rápido
+Config.MONSTER_MAX_SPEED = 40
+Config.MONSTER_CHASE_TIME = 25 -- segundos que ele te persegue antes de sumir
+Config.MONSTER_CATCH_DISTANCE = 6
+Config.MONSTER_ROOT_HEIGHT = 12 -- altura do "peito" do monstro em relação ao pé
+
+---------------------------------------------------------------------
+-- RODADA
+---------------------------------------------------------------------
+Config.ROUND_RESET_TIME = 20 -- segundos depois de vencer até a próxima rodada
+Config.RESPAWN_TIME = 3
+
+---------------------------------------------------------------------
+-- SONS
+-- Os sons "rbxasset://" já vêm com o Roblox. Para sons melhores, pegue IDs na
+-- Creator Store (Toolbox > Audio) e cole aqui no formato "rbxassetid://123456".
+---------------------------------------------------------------------
+Config.Sounds = {
+	Splash = "rbxasset://sounds/impact_water.mp3",
+	Generator = "rbxasset://sounds/electronicpingshort.wav",
+	MonsterDrone = "rbxasset://sounds/action_falling.mp3",
+	MonsterSteps = "rbxasset://sounds/action_footsteps_plastic.mp3",
+	Jumpscare = "rbxasset://sounds/impact_water.mp3",
+	Heartbeat = "rbxasset://sounds/action_jump_land.mp3",
+}
+
+return Config
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="3">
+        <Properties>
+          <string name="Name">Remotes</string>
+          <string name="Source"><![CDATA[-- Cria (no servidor) ou encontra (no cliente) os RemoteEvents do jogo.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local NAMES = {
+	"Notify", -- (texto, cor) mensagem na tela
+	"Splash", -- você tocou na água
+	"Jumpscare", -- o monstro te pegou
+	"Escaped", -- o monstro perdeu seu rastro
+}
+
+local folder
+if RunService:IsServer() then
+	folder = ReplicatedStorage:FindFirstChild("Remotes")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "Remotes"
+		folder.Parent = ReplicatedStorage
+	end
+	for _, name in NAMES do
+		if not folder:FindFirstChild(name) then
+			local ev = Instance.new("RemoteEvent")
+			ev.Name = name
+			ev.Parent = folder
+		end
+	end
+else
+	folder = ReplicatedStorage:WaitForChild("Remotes")
+end
+
+local Remotes = {}
+for _, name in NAMES do
+	Remotes[name] = folder:WaitForChild(name) :: RemoteEvent
+end
+
+return Remotes
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="4">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Folder" referent="5">
+      <Properties>
+        <string name="Name">Server</string>
+      </Properties>
+      <Item class="ModuleScript" referent="6">
+        <Properties>
+          <string name="Name">Generators</string>
+          <string name="Source"><![CDATA[--[[
+	Os 10 geradores. Segure E (ProximityPrompt) para ligar.
+	As posições também são publicadas em ReplicatedStorage.GeneratorInfo
+	para o cliente desenhar os marcadores na tela.
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+
+local Generators = {}
+
+type Gen = {
+	index: number,
+	model: Model,
+	on: boolean,
+	lamp: BasePart,
+	panel: BasePart,
+	light: PointLight,
+	smoke: ParticleEmitter,
+	prompt: ProximityPrompt,
+	sound: Sound,
+	hum: Sound,
+	info: Vector3Value,
+	position: Vector3,
+}
+
+local gens: { Gen } = {}
+local activatedEvent = Instance.new("BindableEvent")
+Generators.Activated = activatedEvent.Event -- (player, index, countOn)
+
+local RED = Color3.fromRGB(255, 50, 40)
+local GREEN = Color3.fromRGB(60, 255, 110)
+
+local infoFolder = Instance.new("Folder")
+infoFolder.Name = "GeneratorInfo"
+infoFolder.Parent = ReplicatedStorage
+
+local function part(parent: Instance, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+local function setVisual(g: Gen, on: boolean)
+	local c = if on then GREEN else RED
+	g.lamp.Color = c
+	g.panel.Color = c
+	g.light.Color = c
+	g.light.Range = if on then 28 else 14
+	g.smoke.Enabled = on
+	g.prompt.Enabled = not on
+	g.model:SetAttribute("On", on)
+	g.info:SetAttribute("On", on)
+	if on then
+		g.hum:Play()
+	else
+		g.hum:Stop()
+	end
+end
+
+local function build(index: number, top: Vector3, parent: Instance): Gen
+	local model = Instance.new("Model")
+	model.Name = string.format("Gerador%02d", index)
+
+	-- vira de frente para o centro do mapa
+	local look = Vector3.new(0, top.Y, 0)
+	if (look - top).Magnitude < 1 then
+		look = top + Vector3.new(0, 0, -1)
+	end
+	local base = CFrame.lookAt(top, look)
+
+	local metal = Color3.fromRGB(70, 72, 78)
+	part(model, Vector3.new(8, 1, 6), base * CFrame.new(0, 0.5, 0), Color3.fromRGB(40, 40, 44), Enum.Material.DiamondPlate)
+	local body = part(model, Vector3.new(6, 4.5, 4), base * CFrame.new(0, 3.25, 0), metal, Enum.Material.Metal)
+	body.Name = "Corpo"
+	part(model, Vector3.new(6.2, 0.6, 4.2), base * CFrame.new(0, 4.6, 0), Color3.fromRGB(245, 200, 40), Enum.Material.SmoothPlastic)
+	local panel = part(model, Vector3.new(2.2, 1.4, 0.2), base * CFrame.new(-1.2, 3.2, -2.05), RED, Enum.Material.Neon)
+	panel.Name = "Painel"
+	for k = 0, 2 do
+		part(model, Vector3.new(0.4, 2.6, 0.2), base * CFrame.new(1.2 + k * 0.7, 3.2, -2.05), Color3.fromRGB(30, 30, 30), Enum.Material.Metal)
+	end
+	local pipe = part(model, Vector3.new(3, 0.8, 0.8), base * CFrame.new(2, 6, 1) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 50, 50), Enum.Material.Metal)
+	pipe.Shape = Enum.PartType.Cylinder
+	local lamp = part(model, Vector3.new(1.4, 1.4, 1.4), base * CFrame.new(-2, 5.6, 0), RED, Enum.Material.Neon)
+	lamp.Shape = Enum.PartType.Ball
+	lamp.Name = "Lampada"
+
+	local light = Instance.new("PointLight")
+	light.Brightness = 2
+	light.Range = 14
+	light.Color = RED
+	light.Shadows = false
+	light.Parent = lamp
+
+	local smokeAtt = Instance.new("Attachment")
+	smokeAtt.Position = Vector3.new(0, 1.6, 0)
+	smokeAtt.Parent = pipe
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(90, 90, 90))
+	smoke.Size = NumberSequence.new(1, 4)
+	smoke.Transparency = NumberSequence.new(0.4, 1)
+	smoke.Lifetime = NumberRange.new(1.5, 2.5)
+	smoke.Rate = 6
+	smoke.Speed = NumberRange.new(4, 6)
+	smoke.EmissionDirection = Enum.NormalId.Top
+	smoke.Enabled = false
+	smoke.Parent = smokeAtt
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Ligar"
+	prompt.ObjectText = string.format("Gerador %d", index)
+	prompt.HoldDuration = Config.GENERATOR_HOLD_TIME
+	prompt.MaxActivationDistance = 11
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.Parent = body
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = Config.Sounds.Generator
+	sound.Volume = 1
+	sound.PlaybackSpeed = 0.8
+	sound.RollOffMaxDistance = 200
+	sound.Parent = body
+
+	local hum = Instance.new("Sound")
+	hum.SoundId = Config.Sounds.MonsterDrone
+	hum.Volume = 0.25
+	hum.PlaybackSpeed = 1.8
+	hum.Looped = true
+	hum.RollOffMaxDistance = 60
+	hum.Parent = body
+
+	model.PrimaryPart = body
+	model:SetAttribute("Index", index)
+	model.Parent = parent
+	CollectionService:AddTag(model, "Generator")
+
+	local info = Instance.new("Vector3Value")
+	info.Name = string.format("%02d", index)
+	info.Value = top + Vector3.new(0, 9, 0)
+	info:SetAttribute("Index", index)
+	info.Parent = infoFolder
+
+	local g: Gen = {
+		index = index,
+		model = model,
+		on = false,
+		lamp = lamp,
+		panel = panel,
+		light = light,
+		smoke = smoke,
+		prompt = prompt,
+		sound = sound,
+		hum = hum,
+		info = info,
+		position = top,
+	}
+	setVisual(g, false)
+
+	prompt.Triggered:Connect(function(player)
+		if g.on or ReplicatedStorage:GetAttribute("Won") then
+			return
+		end
+		g.on = true
+		setVisual(g, true)
+		sound:Play()
+		local n = Generators.countOn()
+		ReplicatedStorage:SetAttribute("GeneratorsOn", n)
+		activatedEvent:Fire(player, index, n)
+	end)
+
+	return g
+end
+
+function Generators.init(spots: { { position: Vector3, tower: boolean } })
+	local folder = Instance.new("Folder")
+	folder.Name = "Geradores"
+	folder.Parent = workspace
+	for i, spot in spots do
+		gens[i] = build(i, spot.position, folder)
+	end
+	ReplicatedStorage:SetAttribute("GeneratorsTotal", #gens)
+	ReplicatedStorage:SetAttribute("GeneratorsOn", 0)
+end
+
+function Generators.countOn(): number
+	local n = 0
+	for _, g in gens do
+		if g.on then
+			n += 1
+		end
+	end
+	return n
+end
+
+function Generators.total(): number
+	return #gens
+end
+
+function Generators.position(index: number): Vector3?
+	local g = gens[index]
+	return g and g.position
+end
+
+function Generators.resetAll()
+	for _, g in gens do
+		g.on = false
+		setVisual(g, false)
+	end
+	ReplicatedStorage:SetAttribute("GeneratorsOn", 0)
+end
+
+return Generators
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">Hunt</string>
+          <string name="Source"><![CDATA[--[[
+	Vigia a água e controla o monstro.
+	Encostou na água (nem que seja um pouquinho)? O Distorcido sai da água e corre atrás de você.
+	• Ele atravessa tudo (é das backrooms, né).
+	• Se ele te alcançar: jumpscare e você volta pro último gerador que ligou.
+	• Se você sobreviver por MONSTER_CHASE_TIME segundos, ele some.
+	• Encostar na água de novo durante a perseguição deixa ele mais rápido.
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local MonsterModel = require(script.Parent.MonsterModel)
+
+local Hunt = {}
+Hunt.enabled = true
+
+local WL = Config.WATER_LEVEL
+local HALF_MAP = Config.MAP_SIZE / 2
+
+type Chase = {
+	player: Player,
+	model: Model,
+	root: BasePart,
+	pos: Vector3,
+	state: string, -- "emerging" | "chasing" | "caught"
+	spawnedAt: number,
+	endTime: number,
+	emergeFrom: Vector3,
+	emergeTo: Vector3,
+	boost: number,
+	lastBoost: number,
+	dead: boolean?,
+}
+
+local chases: { [Player]: Chase } = {}
+local graceUntil: { [Player]: number } = {}
+local lastSplash: { [Player]: number } = {}
+local rng = Random.new()
+
+local monsterFolder = Instance.new("Folder")
+monsterFolder.Name = "Monstros"
+monsterFolder.Parent = workspace
+
+---------------------------------------------------------------------
+-- água
+---------------------------------------------------------------------
+local function getParts(player: Player): (Model?, Humanoid?, BasePart?)
+	local char = player.Character
+	if not char then
+		return nil
+	end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local root = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not hum or not root or hum.Health <= 0 then
+		return nil
+	end
+	return char, hum, root
+end
+
+local function feetY(hum: Humanoid, root: BasePart): number
+	if hum.RigType == Enum.HumanoidRigType.R6 then
+		return root.Position.Y - 3
+	end
+	return root.Position.Y - root.Size.Y / 2 - hum.HipHeight
+end
+
+local function touchingWater(hum: Humanoid, root: BasePart): boolean
+	if feetY(hum, root) <= WL + Config.WATER_TOUCH_TOLERANCE then
+		return true
+	end
+	if hum.FloorMaterial == Enum.Material.Water then
+		return true
+	end
+	return hum:GetState() == Enum.HumanoidStateType.Swimming
+end
+
+---------------------------------------------------------------------
+-- monstro
+---------------------------------------------------------------------
+local function setEndAttribute(chase: Chase)
+	chase.model:SetAttribute("EndTime", workspace:GetServerTimeNow() + (chase.endTime - os.clock()))
+end
+
+local function despawn(chase: Chase, reason: string)
+	if chase.dead then
+		return
+	end
+	chase.dead = true
+	if chases[chase.player] == chase then
+		chases[chase.player] = nil
+	end
+	local model = chase.model
+	CollectionService:RemoveTag(model, "Monster")
+	model:SetAttribute("Leaving", true)
+	for _, s in model:GetDescendants() do
+		if s:IsA("Sound") then
+			s:Stop()
+		end
+	end
+	if reason == "escaped" and chase.player.Parent then
+		Remotes.Escaped:FireClient(chase.player)
+	end
+	-- some piscando
+	task.spawn(function()
+		for _ = 1, 8 do
+			for _, p in model:GetDescendants() do
+				if p:IsA("BasePart") and p.Name ~= "Raiz" then
+					p.Transparency = if rng:NextNumber() < 0.5 then 1 else 0
+				end
+			end
+			task.wait(0.07)
+		end
+		model:Destroy()
+	end)
+end
+
+local function speedFor(chase: Chase): number
+	local gensOn = ReplicatedStorage:GetAttribute("GeneratorsOn") or 0
+	return math.min(Config.MONSTER_MAX_SPEED, Config.MONSTER_BASE_SPEED + Config.MONSTER_SPEED_PER_GENERATOR * gensOn + chase.boost)
+end
+
+local function spawnMonster(player: Player, root: BasePart)
+	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+	if look.Magnitude < 0.01 then
+		look = Vector3.new(0, 0, 1)
+	end
+	-- aparece mais ou menos atrás de você
+	local dir = CFrame.Angles(0, rng:NextNumber(-1.1, 1.1), 0):VectorToWorldSpace(-look.Unit)
+	local flatPos = Vector3.new(root.Position.X, 0, root.Position.Z) + dir * Config.MONSTER_SPAWN_DISTANCE
+	local lim = HALF_MAP - 10
+	flatPos = Vector3.new(math.clamp(flatPos.X, -lim, lim), 0, math.clamp(flatPos.Z, -lim, lim))
+
+	local emergeTo = Vector3.new(flatPos.X, WL + Config.MONSTER_ROOT_HEIGHT - 1, flatPos.Z)
+	local emergeFrom = emergeTo - Vector3.new(0, Config.MONSTER_ROOT_HEIGHT + 8, 0)
+
+	local model = MonsterModel.build()
+	local face = Vector3.new(root.Position.X, emergeFrom.Y, root.Position.Z)
+	model:PivotTo(CFrame.lookAt(emergeFrom, face))
+	model:SetAttribute("Target", player.UserId)
+
+	local now = os.clock()
+	local chase: Chase = {
+		player = player,
+		model = model,
+		root = model.PrimaryPart :: BasePart,
+		pos = emergeFrom,
+		state = "emerging",
+		spawnedAt = now,
+		endTime = now + Config.MONSTER_EMERGE_TIME + Config.MONSTER_CHASE_TIME,
+		emergeFrom = emergeFrom,
+		emergeTo = emergeTo,
+		boost = 0,
+		lastBoost = now,
+	}
+	chases[player] = chase
+	setEndAttribute(chase)
+	model.Parent = monsterFolder
+	CollectionService:AddTag(model, "Monster")
+
+	for _, s in model:GetDescendants() do
+		if s:IsA("Sound") then
+			s:Play()
+		end
+	end
+
+	for _, other in Players:GetPlayers() do
+		if other ~= player then
+			Remotes.Notify:FireClient(other, player.DisplayName .. " encostou na água...", Color3.fromRGB(255, 80, 80))
+		end
+	end
+end
+
+local function catchPlayer(chase: Chase, hum: Humanoid)
+	chase.state = "caught"
+	local player = chase.player
+	hum.WalkSpeed = 0
+	hum.JumpHeight = 0
+	Remotes.Jumpscare:FireClient(player)
+	task.delay(1.4, function()
+		if hum.Parent then
+			hum.Health = 0
+		end
+		despawn(chase, "caught")
+	end)
+end
+
+local function updateChase(chase: Chase, dt: number)
+	if chase.state == "caught" then
+		return
+	end
+	local _, hum, root = getParts(chase.player)
+	if not hum or not root or not chase.model.Parent then
+		despawn(chase, "gone")
+		return
+	end
+
+	local now = os.clock()
+	local target = root.Position
+	local pos
+
+	if chase.state == "emerging" then
+		local a = math.clamp((now - chase.spawnedAt) / Config.MONSTER_EMERGE_TIME, 0, 1)
+		local eased = 1 - (1 - a) ^ 3
+		pos = chase.emergeFrom:Lerp(chase.emergeTo, eased)
+		if a >= 1 then
+			chase.state = "chasing"
+		end
+	else
+		if now > chase.endTime then
+			despawn(chase, "escaped")
+			return
+		end
+		local goalY = math.max(feetY(hum, root), WL) + Config.MONSTER_ROOT_HEIGHT - 1
+		local goal = Vector3.new(target.X, goalY, target.Z)
+		local delta = goal - chase.pos
+		local d = delta.Magnitude
+		pos = chase.pos
+		if d > 0.01 then
+			pos += delta.Unit * math.min(d, speedFor(chase) * dt)
+		end
+
+		local flatDist = Vector2.new(target.X - pos.X, target.Z - pos.Z).Magnitude
+		if flatDist < Config.MONSTER_CATCH_DISTANCE and math.abs(goalY - pos.Y) < 7 then
+			chase.pos = pos
+			catchPlayer(chase, hum)
+			return
+		end
+	end
+
+	chase.pos = pos
+	local lookAt = Vector3.new(target.X, pos.Y, target.Z)
+	if (lookAt - pos).Magnitude > 0.1 then
+		chase.root.CFrame = CFrame.lookAt(pos, lookAt)
+	else
+		chase.root.CFrame = CFrame.new(pos) * chase.root.CFrame.Rotation
+	end
+end
+
+local function onWater(player: Player, root: BasePart)
+	local now = os.clock()
+	if not lastSplash[player] or now - lastSplash[player] > 1.5 then
+		lastSplash[player] = now
+		Remotes.Splash:FireClient(player, chases[player] ~= nil)
+	end
+
+	local chase = chases[player]
+	if chase then
+		if chase.state ~= "caught" and now - chase.lastBoost > 2 then
+			chase.lastBoost = now
+			chase.boost += Config.MONSTER_REPEAT_BOOST
+			chase.endTime = math.max(chase.endTime, now + 12)
+			setEndAttribute(chase)
+		end
+	else
+		spawnMonster(player, root)
+	end
+end
+
+---------------------------------------------------------------------
+-- API
+---------------------------------------------------------------------
+function Hunt.setGrace(player: Player, seconds: number)
+	graceUntil[player] = os.clock() + seconds
+end
+
+function Hunt.clearAll()
+	for _, chase in chases do
+		despawn(chase, "cleared")
+	end
+end
+
+function Hunt.isChased(player: Player): boolean
+	return chases[player] ~= nil
+end
+
+function Hunt.start()
+	Players.PlayerRemoving:Connect(function(player)
+		local chase = chases[player]
+		if chase then
+			despawn(chase, "gone")
+		end
+		graceUntil[player] = nil
+		lastSplash[player] = nil
+	end)
+
+	RunService.Heartbeat:Connect(function(dt)
+		local now = os.clock()
+		if Hunt.enabled then
+			for _, player in Players:GetPlayers() do
+				local _, hum, root = getParts(player)
+				if hum and root and now > (graceUntil[player] or 0) and touchingWater(hum, root) then
+					onWater(player, root)
+				end
+			end
+		end
+		for _, chase in chases do
+			updateChase(chase, dt)
+		end
+	end)
+end
+
+return Hunt
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="Script" referent="8">
+        <Properties>
+          <string name="Name">Main</string>
+          <token name="RunContext">0</token>
+          <string name="Source"><![CDATA[--[[
+	SPLASH IT — script principal do servidor
+	Monta o mapa, os geradores, liga o vigia da água e controla as rodadas.
+]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local StarterPlayer = game:GetService("StarterPlayer")
+local TweenService = game:GetService("TweenService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local MapBuilder = require(script.Parent.MapBuilder)
+local Generators = require(script.Parent.Generators)
+local Hunt = require(script.Parent.Hunt)
+
+-- ninguém nasce antes do mapa ficar pronto
+Players.CharacterAutoLoads = false
+Players.RespawnTime = Config.RESPAWN_TIME
+StarterPlayer.CharacterWalkSpeed = Config.WALK_SPEED
+StarterPlayer.CharacterUseJumpPower = false
+StarterPlayer.CharacterJumpHeight = Config.JUMP_HEIGHT
+
+---------------------------------------------------------------------
+-- clima: névoa amarelada, estilo backrooms em mar aberto
+---------------------------------------------------------------------
+local function getOrCreate(className: string, parent: Instance): any
+	local obj = parent:FindFirstChildOfClass(className)
+	if not obj then
+		obj = Instance.new(className)
+		obj.Parent = parent
+	end
+	return obj
+end
+
+local atmosphere = getOrCreate("Atmosphere", Lighting) :: Atmosphere
+local colorCorrection = getOrCreate("ColorCorrectionEffect", Lighting) :: ColorCorrectionEffect
+local bloom = getOrCreate("BloomEffect", Lighting) :: BloomEffect
+
+local CREEPY = {
+	lighting = { ClockTime = 17.3, Brightness = 1.6 },
+	atmosphere = { Density = 0.42, Haze = 2.2 },
+}
+local HAPPY = {
+	lighting = { ClockTime = 13, Brightness = 3 },
+	atmosphere = { Density = 0.18, Haze = 0.5 },
+}
+
+local function applyMood(mood, time: number)
+	local info = TweenInfo.new(time, Enum.EasingStyle.Sine)
+	TweenService:Create(Lighting, info, mood.lighting):Play()
+	TweenService:Create(atmosphere, info, mood.atmosphere):Play()
+end
+
+Lighting.Ambient = Color3.fromRGB(60, 58, 52)
+Lighting.OutdoorAmbient = Color3.fromRGB(110, 105, 90)
+Lighting.GlobalShadows = true
+Lighting.EnvironmentDiffuseScale = 0.4
+atmosphere.Offset = 0.15
+atmosphere.Color = Color3.fromRGB(185, 180, 145)
+atmosphere.Decay = Color3.fromRGB(95, 90, 70)
+atmosphere.Glare = 0
+colorCorrection.Saturation = -0.2
+colorCorrection.Contrast = 0.12
+colorCorrection.TintColor = Color3.fromRGB(255, 247, 225)
+bloom.Intensity = 0.6
+bloom.Size = 24
+bloom.Threshold = 1.6
+applyMood(CREEPY, 0)
+
+---------------------------------------------------------------------
+-- monta o mundo
+---------------------------------------------------------------------
+local mapInfo = MapBuilder.build()
+Generators.init(mapInfo.generatorSpots)
+ReplicatedStorage:SetAttribute("Won", false)
+Hunt.start()
+
+---------------------------------------------------------------------
+-- checkpoints: você renasce no último gerador que ligou
+---------------------------------------------------------------------
+local checkpoints: { [Player]: Vector3 } = {}
+
+local function checkpointFor(index: number): Vector3?
+	local pos = Generators.position(index)
+	if not pos then
+		return nil
+	end
+	local toCenter = Vector3.new(-pos.X, 0, -pos.Z)
+	local offset = if toCenter.Magnitude > 1 then toCenter.Unit * 5.5 else Vector3.new(0, 0, 5.5)
+	return pos + offset + Vector3.new(0, 4, 0)
+end
+
+local function onCharacter(player: Player, char: Model)
+	Hunt.setGrace(player, Config.SPAWN_GRACE)
+	local hum = char:WaitForChild("Humanoid") :: Humanoid
+	hum.UseJumpPower = false
+	hum.WalkSpeed = Config.WALK_SPEED
+	hum.JumpHeight = Config.JUMP_HEIGHT
+
+	-- CharacterAutoLoads está desligado, então nós mesmos renascemos o jogador
+	hum.Died:Connect(function()
+		task.wait(Config.RESPAWN_TIME)
+		if player.Parent and player.Character == char then
+			player:LoadCharacter()
+		end
+	end)
+
+	local cp = checkpoints[player]
+	if cp then
+		char:WaitForChild("HumanoidRootPart")
+		task.wait()
+		char:PivotTo(CFrame.new(cp))
+	end
+end
+
+local function onPlayer(player: Player)
+	player.CharacterAdded:Connect(function(char)
+		onCharacter(player, char)
+	end)
+	player:LoadCharacter()
+end
+
+Players.PlayerAdded:Connect(onPlayer)
+for _, p in Players:GetPlayers() do
+	task.spawn(onPlayer, p)
+end
+Players.PlayerRemoving:Connect(function(player)
+	checkpoints[player] = nil
+end)
+
+---------------------------------------------------------------------
+-- rodada
+---------------------------------------------------------------------
+local function newRound()
+	Generators.resetAll()
+	table.clear(checkpoints)
+	applyMood(CREEPY, 3)
+	ReplicatedStorage:SetAttribute("Won", false)
+	ReplicatedStorage:SetAttribute("ResetAt", nil)
+	Hunt.enabled = true
+	for _, player in Players:GetPlayers() do
+		task.spawn(function()
+			player:LoadCharacter()
+		end)
+	end
+	Remotes.Notify:FireAllClients("Nova rodada! Ligue os 10 geradores.", Color3.fromRGB(255, 230, 150))
+end
+
+local function win()
+	ReplicatedStorage:SetAttribute("Won", true)
+	ReplicatedStorage:SetAttribute("ResetAt", workspace:GetServerTimeNow() + Config.ROUND_RESET_TIME)
+	Hunt.enabled = false
+	Hunt.clearAll()
+	applyMood(HAPPY, 4)
+	task.delay(Config.ROUND_RESET_TIME, newRound)
+end
+
+Generators.Activated:Connect(function(player: Player, index: number, countOn: number)
+	checkpoints[player] = checkpointFor(index)
+	local total = Generators.total()
+	Remotes.Notify:FireAllClients(
+		string.format("%s ligou o Gerador %d  (%d/%d)", player.DisplayName, index, countOn, total),
+		Color3.fromRGB(110, 255, 140)
+	)
+	if countOn >= total then
+		win()
+	end
+end)
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="9">
+        <Properties>
+          <string name="Name">MapBuilder</string>
+          <string name="Source"><![CDATA[--[[
+	Gera o mapa ENORME e aberto:
+	  • oceano de água (Terrain)
+	  • plataforma inicial
+	  • 10 ilhas com geradores (algumas em cima de torres com escada em espiral)
+	  • caminhos de "quadrados" para pular entre as ilhas (sempre possíveis de pular)
+	  • blocos soltos, cubos gigantes e pedrinhas para sair da água
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+
+local MapBuilder = {}
+
+local WL = Config.WATER_LEVEL
+local FLOOR_Y = WL - Config.WATER_DEPTH
+local HALF_MAP = Config.MAP_SIZE / 2
+
+local rng: Random
+local reserved: { { pos: Vector2, r: number } } = {}
+
+local PALETTE = {
+	Color3.fromRGB(232, 214, 140), -- amarelo backrooms
+	Color3.fromRGB(205, 190, 125),
+	Color3.fromRGB(240, 238, 228),
+	Color3.fromRGB(120, 175, 220),
+	Color3.fromRGB(150, 205, 150),
+	Color3.fromRGB(235, 160, 95),
+	Color3.fromRGB(175, 150, 220),
+	Color3.fromRGB(225, 110, 110),
+}
+local FADE_COLOR = Color3.fromRGB(255, 120, 200)
+local WALLPAPER = Color3.fromRGB(214, 196, 120)
+local CARPET = Color3.fromRGB(176, 158, 92)
+
+---------------------------------------------------------------------
+-- helpers
+---------------------------------------------------------------------
+local function newPart(parent: Instance, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+local function randomColor(): Color3
+	return PALETTE[rng:NextInteger(1, #PALETTE)]
+end
+
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+local function reserve(x: number, z: number, r: number)
+	table.insert(reserved, { pos = Vector2.new(x, z), r = r })
+end
+
+local function isReserved(x: number, z: number, margin: number): boolean
+	local p = Vector2.new(x, z)
+	for _, r in reserved do
+		if (p - r.pos).Magnitude < r.r + margin then
+			return true
+		end
+	end
+	return false
+end
+
+-- plataforma redonda: "top" é o centro da superfície onde o jogador pisa
+local function roundPlatform(parent: Instance, top: Vector3, radius: number, color: Color3, material: Enum.Material?): Part
+	local height = top.Y - FLOOR_Y
+	local p = newPart(
+		parent,
+		Vector3.new(height, radius * 2, radius * 2),
+		CFrame.new(top.X, FLOOR_Y + height / 2, top.Z) * CFrame.Angles(0, 0, math.rad(90)),
+		color,
+		material
+	)
+	p.Shape = Enum.PartType.Cylinder
+	return p
+end
+
+-- bloco quadrado: "top" é o centro da superfície
+local function squareBlock(parent: Instance, top: Vector3, half: number, yaw: number, pillar: boolean, color: Color3?): Part
+	local size = half * 2
+	local part
+	if pillar then
+		local h = top.Y - FLOOR_Y
+		part = newPart(
+			parent,
+			Vector3.new(size, h, size),
+			CFrame.new(top.X, FLOOR_Y + h / 2, top.Z) * CFrame.Angles(0, yaw, 0),
+			color or randomColor()
+		)
+	else
+		part = newPart(
+			parent,
+			Vector3.new(size, size, size),
+			CFrame.new(top.X, top.Y - half, top.Z) * CFrame.Angles(0, yaw, 0),
+			color or randomColor()
+		)
+	end
+	return part
+end
+
+local function makeFade(part: Part)
+	part.Color = FADE_COLOR
+	part.Material = Enum.Material.Neon
+	part.Transparency = 0.25
+	CollectionService:AddTag(part, "FadeBlock")
+end
+
+-- escadinha descendo da borda de uma plataforma até perto da água (pra quem cair conseguir subir)
+local function stairsToWater(parent: Instance, center: Vector3, radius: number, angle: number)
+	local dir = Vector3.new(math.cos(angle), 0, math.sin(angle))
+	local yaw = math.atan2(dir.X, dir.Z)
+	local y = center.Y
+	local dist = radius + 2.2
+	local color = Color3.fromRGB(110, 105, 95)
+	while y > WL + 1.6 do
+		y = math.max(y - 1.6, WL + 1.3)
+		local pos = flat(center) + dir * dist
+		squareBlock(parent, Vector3.new(pos.X, y, pos.Z), 2, yaw, true, color).Material = Enum.Material.Slate
+		dist += 4.2
+	end
+end
+
+-- parede estilo backrooms com luz fluorescente
+local function backroomsWall(parent: Instance, base: Vector3, yaw: number, width: number)
+	local h = 11
+	local cf = CFrame.new(base + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, yaw, 0)
+	local wall = newPart(parent, Vector3.new(width, h, 1), cf, WALLPAPER, Enum.Material.Fabric)
+	local lamp = newPart(parent, Vector3.new(width * 0.5, 0.4, 1.6), cf * CFrame.new(0, h / 2 + 0.2, 0), Color3.fromRGB(255, 252, 225), Enum.Material.Neon)
+	local light = Instance.new("SurfaceLight")
+	light.Face = Enum.NormalId.Bottom
+	light.Brightness = 1.2
+	light.Range = 14
+	light.Color = Color3.fromRGB(255, 245, 200)
+	light.Parent = lamp
+	return wall
+end
+
+---------------------------------------------------------------------
+-- água
+---------------------------------------------------------------------
+local function buildOcean()
+	local terrain = workspace.Terrain
+	terrain:Clear()
+	terrain.WaterColor = Color3.fromRGB(38, 72, 66)
+	terrain.WaterTransparency = 0.35
+	terrain.WaterReflectance = 0.6
+	terrain.WaterWaveSize = 0.12
+	terrain.WaterWaveSpeed = 8
+
+	local extent = HALF_MAP + 300
+	local chunk = 512
+	local x = -extent
+	while x < extent do
+		local z = -extent
+		while z < extent do
+			local sx = math.min(chunk, extent - x)
+			local sz = math.min(chunk, extent - z)
+			local cx, cz = x + sx / 2, z + sz / 2
+			terrain:FillBlock(CFrame.new(cx, FLOOR_Y + (WL - FLOOR_Y) / 2, cz), Vector3.new(sx, WL - FLOOR_Y, sz), Enum.Material.Water)
+			terrain:FillBlock(CFrame.new(cx, FLOOR_Y - 4, cz), Vector3.new(sx, 8, sz), Enum.Material.Mud)
+			z += chunk
+		end
+		x += chunk
+	end
+end
+
+local function buildBoundaries(parent: Instance)
+	local h = 400
+	local t = 4
+	local s = Config.MAP_SIZE
+	local function wall(size: Vector3, pos: Vector3)
+		local w = newPart(parent, size, CFrame.new(pos), Color3.new(0, 0, 0))
+		w.Transparency = 1
+		w.Name = "Limite"
+	end
+	wall(Vector3.new(s, h, t), Vector3.new(0, h / 2 + FLOOR_Y, HALF_MAP))
+	wall(Vector3.new(s, h, t), Vector3.new(0, h / 2 + FLOOR_Y, -HALF_MAP))
+	wall(Vector3.new(t, h, s), Vector3.new(HALF_MAP, h / 2 + FLOOR_Y, 0))
+	wall(Vector3.new(t, h, s), Vector3.new(-HALF_MAP, h / 2 + FLOOR_Y, 0))
+end
+
+---------------------------------------------------------------------
+-- spawn
+---------------------------------------------------------------------
+local function buildSpawn(parent: Instance): Vector3
+	local top = Vector3.new(0, Config.SPAWN_HEIGHT, 0)
+	local hub = roundPlatform(parent, top, Config.SPAWN_RADIUS, CARPET, Enum.Material.Fabric)
+	hub.Name = "PlataformaInicial"
+	reserve(0, 0, Config.SPAWN_RADIUS)
+
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(12, 1, 12)
+	spawn.CFrame = CFrame.new(top + Vector3.new(0, 0.5, 0))
+	spawn.Color = Color3.fromRGB(240, 230, 190)
+	spawn.Material = Enum.Material.SmoothPlastic
+	spawn.Duration = 0
+	spawn.Neutral = true
+	spawn.Parent = parent
+
+	-- paredes backrooms em volta (com aberturas)
+	for i = 0, 3 do
+		local a = i * math.pi / 2 + math.pi / 4
+		local pos = top + Vector3.new(math.cos(a), 0, math.sin(a)) * (Config.SPAWN_RADIUS - 5)
+		backroomsWall(parent, pos, -a + math.pi / 2, 12)
+	end
+
+	-- placa com instruções
+	local sign = newPart(parent, Vector3.new(14, 7, 0.6), CFrame.new(top + Vector3.new(0, 6.5, -8)), Color3.fromRGB(30, 28, 25), Enum.Material.Wood)
+	sign.Name = "Placa"
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Back
+	gui.PixelsPerStud = 40
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.Parent = sign
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255, 240, 200)
+	label.Font = Enum.Font.Creepster
+	label.TextScaled = true
+	label.Text = "LIGUE OS 10 GERADORES\n\nNÃO ENCOSTE NA ÁGUA\n\nnem um pouquinho..."
+	label.Parent = gui
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0, 20)
+	pad.PaddingBottom = UDim.new(0, 20)
+	pad.PaddingLeft = UDim.new(0, 20)
+	pad.PaddingRight = UDim.new(0, 20)
+	pad.Parent = label
+
+	for i = 0, 3 do
+		stairsToWater(parent, top, Config.SPAWN_RADIUS, i * math.pi / 2)
+	end
+
+	return top
+end
+
+---------------------------------------------------------------------
+-- caminhos de blocos
+---------------------------------------------------------------------
+local function buildPath(parent: Instance, from: Vector3, fromRadius: number, to: Vector3, toRadius: number)
+	local folder = Instance.new("Folder")
+	folder.Name = "Caminho"
+	folder.Parent = parent
+
+	local totalFlat = flat(to - from).Magnitude
+	local arc = rng:NextNumber(-1, 24) -- o caminho sobe e desce por cima do mar
+	local cur = from
+	local curHalf = fromRadius
+	local headingOffset = 0
+	local lastFade = true
+	local edge = HALF_MAP - 15
+
+	for step = 1, 600 do
+		local toTarget = Vector3.new(to.X - cur.X, 0, to.Z - cur.Z)
+		local dist = toTarget.Magnitude
+		local edgeGap = dist - curHalf - toRadius
+		local dh = to.Y - cur.Y
+		if edgeGap <= Config.PATH_GAP_MAX and dh <= Config.PATH_RISE_MAX then
+			break
+		end
+
+		local p = math.clamp(1 - dist / totalFlat, 0, 1)
+		headingOffset = math.clamp(headingOffset + rng:NextNumber(-0.3, 0.3), -0.7, 0.7)
+		local dir = CFrame.Angles(0, headingOffset * (1 - p), 0):VectorToWorldSpace(toTarget.Unit)
+
+		-- tipo do próximo bloco
+		local roll = rng:NextNumber()
+		local half, pillar
+		if roll < 0.1 then
+			half, pillar = 1.3, false -- bloquinho minúsculo
+		elseif roll < 0.72 then
+			half, pillar = rng:NextNumber(2, 3.5), rng:NextNumber() < 0.5
+		elseif roll < 0.9 then
+			half, pillar = rng:NextNumber(4, 6), true -- plataforma de descanso
+		else
+			half, pillar = rng:NextNumber(1.8, 2.6), true
+		end
+
+		local gap = rng:NextNumber(Config.PATH_GAP_MIN, Config.PATH_GAP_MAX)
+		-- perto do fim: um último bloco exatamente no meio, pra não entrar dentro da ilha
+		local bridging = edgeGap <= 2 * Config.PATH_GAP_MAX + 8
+		if bridging then
+			if edgeGap < 4 then
+				break
+			end
+			half = math.clamp((edgeGap - (Config.PATH_GAP_MIN + Config.PATH_GAP_MAX)) / 2, 1.5, 4)
+			gap = (edgeGap - 2 * half) / 2
+			pillar = true
+			dir = toTarget.Unit
+		end
+		local stepFlat = curHalf + gap + half
+		local nextP = math.clamp(1 - (dist - stepFlat) / totalFlat, 0, 1)
+		local profileY = from.Y + (to.Y - from.Y) * nextP + arc * math.sin(nextP * math.pi)
+		local noise = if nextP < 0.85 then rng:NextNumber(-1.3, 1.3) else 0
+		local dy = math.clamp(profileY + noise - cur.Y, -Config.PATH_DROP_MAX, Config.PATH_RISE_MAX)
+		if dy > 2 and not bridging then
+			gap = math.min(gap, 5)
+			stepFlat = curHalf + gap + half
+		end
+		local y = math.clamp(cur.Y + dy, Config.PATH_MIN_HEIGHT, Config.PATH_MAX_HEIGHT)
+
+		local pos = flat(cur) + dir * stepFlat
+		pos = Vector3.new(math.clamp(pos.X, -edge, edge), y, math.clamp(pos.Z, -edge, edge))
+
+		local part = squareBlock(folder, pos, half, math.atan2(dir.X, dir.Z), pillar)
+		if not lastFade and step > 1 and half < 4 and rng:NextNumber() < Config.FADE_BLOCK_CHANCE then
+			makeFade(part)
+			lastFade = true
+		else
+			lastFade = false
+		end
+
+		cur = pos
+		curHalf = half
+	end
+end
+
+---------------------------------------------------------------------
+-- ilhas dos geradores
+---------------------------------------------------------------------
+local function buildTower(parent: Instance, base: Vector3): Vector3
+	local pillarHalf = 7
+	local height = base.Y + rng:NextNumber(32, 55)
+	local top = Vector3.new(base.X, height, base.Z)
+	squareBlock(parent, top, pillarHalf, rng:NextNumber(0, math.pi), true, Color3.fromRGB(95, 92, 88)).Material = Enum.Material.Concrete
+
+	local blockHalf = 2.5
+	local r = pillarHalf + 3.5 + blockHalf
+	local dTheta = 2 * math.asin((blockHalf * 2 + 3.5) / (2 * r))
+	local angle = rng:NextNumber(0, math.pi * 2)
+	local y = base.Y + 2.4
+	local spin = if rng:NextNumber() < 0.5 then 1 else -1
+	while y < height - 0.5 do
+		local pos = Vector3.new(base.X + math.cos(angle) * r, y, base.Z + math.sin(angle) * r)
+		local tangentYaw = -angle
+		local part = squareBlock(parent, pos, blockHalf, tangentYaw, false)
+		part.Name = "Espiral"
+		angle += dTheta * spin
+		y += 2.4
+	end
+	return top
+end
+
+local function buildIsland(parent: Instance, index: number, center: Vector3, tower: boolean): Vector3
+	local folder = Instance.new("Folder")
+	folder.Name = string.format("Ilha%02d", index)
+	folder.Parent = parent
+
+	local radius = if tower then 20 else 16
+	local island = roundPlatform(folder, center, radius, Color3.fromRGB(150, 140, 110), Enum.Material.Slate)
+	island.Name = "Ilha"
+	reserve(center.X, center.Z, radius)
+
+	-- decoração backrooms
+	for _ = 1, rng:NextInteger(1, 2) do
+		local a = rng:NextNumber(0, math.pi * 2)
+		local pos = center + Vector3.new(math.cos(a), 0, math.sin(a)) * (radius - 3)
+		backroomsWall(folder, pos, -a + math.pi / 2, 8)
+	end
+
+	for i = 0, 1 do
+		stairsToWater(folder, center, radius, rng:NextNumber(0, math.pi * 2) + i * math.pi)
+	end
+
+	if tower then
+		return buildTower(folder, center)
+	end
+	return center
+end
+
+---------------------------------------------------------------------
+-- coisas espalhadas
+---------------------------------------------------------------------
+local function randomMapPoint(margin: number): (number, number)
+	local lim = HALF_MAP - margin
+	return rng:NextNumber(-lim, lim), rng:NextNumber(-lim, lim)
+end
+
+local function buildScatter(parent: Instance)
+	local folder = Instance.new("Folder")
+	folder.Name = "Blocos"
+	folder.Parent = parent
+
+	-- cubos gigantes (pontos de referência no horizonte)
+	for _ = 1, Config.MONOLITHS do
+		local size = rng:NextNumber(30, 70)
+		local x, z = randomMapPoint(size)
+		if not isReserved(x, z, size) then
+			local topY = rng:NextNumber(15, 65)
+			local c = if rng:NextNumber() < 0.5 then Color3.fromRGB(60, 58, 62) else WALLPAPER
+			local m = squareBlock(folder, Vector3.new(x, topY, z), size / 2, rng:NextNumber(0, math.pi), true, c)
+			m.Material = Enum.Material.Concrete
+			m.Name = "Monolito"
+			reserve(x, z, size * 0.75)
+		end
+	end
+
+	-- blocos soltos
+	for _ = 1, Config.SCATTER_BLOCKS do
+		local x, z = randomMapPoint(10)
+		if not isReserved(x, z, 6) then
+			local roll = rng:NextNumber()
+			if roll < 0.6 then
+				local half = rng:NextNumber(1.5, 4.5)
+				squareBlock(folder, Vector3.new(x, rng:NextNumber(2, 30), z), half, rng:NextNumber(0, math.pi), false)
+			elseif roll < 0.85 then
+				local half = rng:NextNumber(2, 5)
+				squareBlock(folder, Vector3.new(x, rng:NextNumber(2, 25), z), half, rng:NextNumber(0, math.pi), true)
+			else
+				-- escadinha de cubos
+				local y = rng:NextNumber(2, 6)
+				local a = rng:NextNumber(0, math.pi * 2)
+				local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+				local pos = Vector3.new(x, y, z)
+				for _ = 1, rng:NextInteger(3, 7) do
+					squareBlock(folder, pos, 2, math.atan2(dir.X, dir.Z), false)
+					pos += dir * 8.5 + Vector3.new(0, 2.5, 0)
+				end
+			end
+		end
+	end
+
+	-- pedrinhas baixas pra sair da água
+	for _ = 1, Config.RESCUE_STONES do
+		local x, z = randomMapPoint(10)
+		if not isReserved(x, z, 4) then
+			local s = squareBlock(folder, Vector3.new(x, WL + 1.3, z), rng:NextNumber(2.5, 4), rng:NextNumber(0, math.pi), true, Color3.fromRGB(100, 98, 92))
+			s.Material = Enum.Material.Slate
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- blocos rosa que somem
+---------------------------------------------------------------------
+local function setupFadeBlocks()
+	local busy: { [BasePart]: boolean } = {}
+	local function hook(part: BasePart)
+		local base = part.Transparency
+		part.Touched:Connect(function(hit)
+			if busy[part] then
+				return
+			end
+			local char = hit:FindFirstAncestorOfClass("Model")
+			if not char or not Players:GetPlayerFromCharacter(char) then
+				return
+			end
+			busy[part] = true
+			task.wait(0.35)
+			local t = TweenService:Create(part, TweenInfo.new(0.5), { Transparency = 0.92 })
+			t:Play()
+			t.Completed:Wait()
+			part.CanCollide = false
+			task.wait(3)
+			part.CanCollide = true
+			TweenService:Create(part, TweenInfo.new(0.4), { Transparency = base }):Play()
+			busy[part] = nil
+		end)
+	end
+	for _, p in CollectionService:GetTagged("FadeBlock") do
+		hook(p)
+	end
+	CollectionService:GetInstanceAddedSignal("FadeBlock"):Connect(hook)
+end
+
+---------------------------------------------------------------------
+-- API
+---------------------------------------------------------------------
+export type MapInfo = {
+	spawn: Vector3,
+	generatorSpots: { { position: Vector3, tower: boolean } },
+}
+
+function MapBuilder.build(): MapInfo
+	rng = Random.new(Config.SEED or os.time())
+	table.clear(reserved)
+
+	local old = workspace:FindFirstChild("Mapa")
+	if old then
+		old:Destroy()
+	end
+	local map = Instance.new("Folder")
+	map.Name = "Mapa"
+
+	buildOcean()
+	buildBoundaries(map)
+	local spawnTop = buildSpawn(map)
+
+	-- posições das ilhas: anel interno e externo intercalados
+	local count = Config.GENERATOR_COUNT
+	local islands: { Vector3 } = {}
+	local spots = {}
+	local angleOffset = rng:NextNumber(0, math.pi * 2)
+	for i = 1, count do
+		local outer = i % 2 == 0
+		local range = if outer then Config.GENERATOR_OUTER_RADIUS else Config.GENERATOR_INNER_RADIUS
+		local radius = rng:NextNumber(range[1], range[2])
+		local angle = angleOffset + (i - 1) / count * math.pi * 2 + rng:NextNumber(-0.12, 0.12)
+		local center = Vector3.new(math.cos(angle) * radius, rng:NextNumber(3, 7), math.sin(angle) * radius)
+		local tower = rng:NextNumber() < Config.TOWER_CHANCE
+		islands[i] = center
+		local genPos = buildIsland(map, i, center, tower)
+		spots[i] = { position = genPos, tower = tower }
+	end
+
+	local function islandRadius(i: number): number
+		return if spots[i].tower then 20 else 16
+	end
+
+	-- caminhos: spawn -> cada ilha interna, anel interno, zigue-zague interno/externo
+	for i = 1, count do
+		if i % 2 == 1 then
+			buildPath(map, spawnTop, Config.SPAWN_RADIUS, islands[i], islandRadius(i))
+			local nextInner = (i + 1) % count + 1
+			if nextInner ~= i then
+				buildPath(map, islands[i], islandRadius(i), islands[nextInner], islandRadius(nextInner))
+			end
+		end
+		local nxt = i % count + 1
+		buildPath(map, islands[i], islandRadius(i), islands[nxt], islandRadius(nxt))
+	end
+
+	buildScatter(map)
+	map.Parent = workspace
+	setupFadeBlocks()
+
+	return {
+		spawn = spawnTop,
+		generatorSpots = spots,
+	}
+end
+
+return MapBuilder
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="10">
+        <Properties>
+          <string name="Name">MonsterModel</string>
+          <string name="Source"><![CDATA[--[[
+	Monta o "Distorcido": uma criatura das backrooms, alta, magra, preta,
+	com braços compridos demais, cabeça torta, olhos brancos e boca vermelha.
+	O servidor só move a raiz; o cliente (MonsterFX) anima as juntas e faz o efeito de glitch.
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage.Shared.Config)
+
+local MonsterModel = {}
+
+local SKIN = Color3.fromRGB(12, 11, 13)
+local SKIN2 = Color3.fromRGB(28, 24, 26)
+
+local function limb(model: Model, attachTo: BasePart, name: string, size: Vector3, c0: CFrame, color: Color3, material: Enum.Material?, swing: number?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	p.Anchored = false
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.Massless = true
+	p.CastShadow = true
+	p.CFrame = attachTo.CFrame * c0
+	p.Parent = model
+
+	local w = Instance.new("Weld")
+	w.Name = "Junta"
+	w.Part0 = attachTo
+	w.Part1 = p
+	w.C0 = c0
+	w:SetAttribute("BaseC0", c0)
+	if swing then
+		w:SetAttribute("Swing", swing)
+	end
+	w.Parent = p
+	return p
+end
+
+function MonsterModel.build(): Model
+	local model = Instance.new("Model")
+	model.Name = "Distorcido"
+
+	local root = Instance.new("Part")
+	root.Name = "Raiz"
+	root.Size = Vector3.new(2, 2, 1)
+	root.Transparency = 1
+	root.Anchored = true
+	root.CanCollide = false
+	root.CanTouch = false
+	root.CanQuery = false
+	root.Parent = model
+	model.PrimaryPart = root
+
+	-- tronco torto
+	local torso = limb(model, root, "Tronco", Vector3.new(2.4, 6.5, 1.1), CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(12), 0, math.rad(-4)), SKIN)
+	-- costelas aparecendo
+	for i = 0, 3 do
+		limb(model, torso, "Costela", Vector3.new(2.6, 0.18, 1.2), CFrame.new(0, 1.8 - i * 0.7, -0.02), SKIN2)
+	end
+	-- pescoço comprido e cabeça caída pro lado
+	local neck = limb(model, torso, "Pescoco", Vector3.new(0.55, 3, 0.55), CFrame.new(0.2, 4.4, -0.3) * CFrame.Angles(math.rad(-20), 0, math.rad(-18)), SKIN, nil, 0)
+	local head = limb(model, neck, "Cabeca", Vector3.new(2, 3.2, 1.8), CFrame.new(0.3, 2.4, -0.2) * CFrame.Angles(0, 0, math.rad(32)), SKIN)
+	head:SetAttribute("IsHead", true)
+
+	-- olhos (tamanhos diferentes = mais assustador)
+	local eyeColor = Color3.fromRGB(255, 255, 245)
+	local eyeL = limb(model, head, "Olho", Vector3.new(0.75, 0.75, 0.75), CFrame.new(-0.5, 0.55, -0.9), eyeColor, Enum.Material.Neon)
+	eyeL.Shape = Enum.PartType.Ball
+	local eyeR = limb(model, head, "Olho", Vector3.new(0.45, 0.45, 0.45), CFrame.new(0.55, 0.35, -0.92), eyeColor, Enum.Material.Neon)
+	eyeR.Shape = Enum.PartType.Ball
+	-- boca rasgada
+	limb(model, head, "Boca", Vector3.new(1.5, 0.9, 0.12), CFrame.new(0.05, -0.75, -0.92) * CFrame.Angles(0, 0, math.rad(-9)), Color3.fromRGB(120, 0, 0), Enum.Material.Neon)
+	for i = 0, 5 do
+		limb(model, head, "Dente", Vector3.new(0.12, 0.35, 0.12), CFrame.new(-0.6 + i * 0.24, -0.45 - (i % 2) * 0.15, -0.98), Color3.fromRGB(230, 225, 200))
+	end
+	local eyeLight = Instance.new("PointLight")
+	eyeLight.Color = Color3.fromRGB(255, 230, 230)
+	eyeLight.Brightness = 3
+	eyeLight.Range = 10
+	eyeLight.Parent = head
+
+	-- braços compridos demais (balançam correndo)
+	for _, side in { -1, 1 } do
+		local shoulder = CFrame.new(side * 1.5, 2.8, 0)
+		local upper = limb(
+			model,
+			torso,
+			"Braco",
+			Vector3.new(0.5, 6, 0.5),
+			shoulder * CFrame.Angles(0, 0, math.rad(side * 12)) * CFrame.new(0, -3, 0),
+			SKIN,
+			nil,
+			side * 0.9
+		)
+		local fore = limb(model, upper, "Antebraco", Vector3.new(0.42, 6, 0.42), CFrame.new(0, -3, 0) * CFrame.Angles(math.rad(-25), 0, 0) * CFrame.new(0, -3, 0), SKIN, nil, side * 0.4)
+		-- dedos-garra
+		for f = -1, 1 do
+			limb(model, fore, "Garra", Vector3.new(0.12, 2, 0.12), CFrame.new(f * 0.18, -3.6, 0) * CFrame.Angles(math.rad(f * 10 - 15), 0, math.rad(f * 12)) * CFrame.new(0, -0.6, 0), SKIN2)
+		end
+	end
+
+	-- pernas finas
+	for _, side in { -1, 1 } do
+		local hip = CFrame.new(side * 0.7, -3.1, 0)
+		local thigh = limb(model, torso, "Coxa", Vector3.new(0.6, 4.5, 0.6), hip * CFrame.new(0, -2.25, 0), SKIN, nil, -side * 1.0)
+		limb(model, thigh, "Canela", Vector3.new(0.45, 4.8, 0.45), CFrame.new(0, -2.25, 0) * CFrame.Angles(math.rad(15), 0, 0) * CFrame.new(0, -2.4, 0), SKIN, nil, -side * 0.5)
+	end
+
+	-- fumaça preta
+	local att = Instance.new("Attachment")
+	att.Parent = torso
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.new(0, 0, 0))
+	smoke.LightInfluence = 0
+	smoke.Size = NumberSequence.new(3, 7)
+	smoke.Transparency = NumberSequence.new(0.35, 1)
+	smoke.Lifetime = NumberRange.new(0.8, 1.6)
+	smoke.Rate = 25
+	smoke.Speed = NumberRange.new(1, 3)
+	smoke.SpreadAngle = Vector2.new(180, 180)
+	smoke.Parent = att
+
+	-- sons
+	local drone = Instance.new("Sound")
+	drone.Name = "Drone"
+	drone.SoundId = Config.Sounds.MonsterDrone
+	drone.Looped = true
+	drone.Volume = 2
+	drone.PlaybackSpeed = 0.35
+	drone.RollOffMaxDistance = 220
+	drone.RollOffMinDistance = 15
+	local dist = Instance.new("DistortionSoundEffect")
+	dist.Level = 0.85
+	dist.Parent = drone
+	drone.Parent = root
+
+	local steps = Instance.new("Sound")
+	steps.Name = "Passos"
+	steps.SoundId = Config.Sounds.MonsterSteps
+	steps.Looped = true
+	steps.Volume = 2.5
+	steps.PlaybackSpeed = 1.6
+	steps.RollOffMaxDistance = 160
+	steps.RollOffMinDistance = 10
+	local dist2 = Instance.new("DistortionSoundEffect")
+	dist2.Level = 0.6
+	dist2.Parent = steps
+	steps.Parent = root
+
+	return model
+end
+
+return MonsterModel
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="11">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="12">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="Folder" referent="13">
+        <Properties>
+          <string name="Name">Client</string>
+        </Properties>
+        <Item class="LocalScript" referent="14">
+          <Properties>
+            <string name="Name">HUD</string>
+            <string name="Source"><![CDATA[--[[
+	Interface: contador de geradores, marcadores no mapa, avisos,
+	tela de perseguição, jumpscare e tela de vitória.
+]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CollectionService = game:GetService("CollectionService")
+local SoundService = game:GetService("SoundService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local FONT = Enum.Font.GothamBlack
+local FONT_SCARY = Enum.Font.Creepster
+
+---------------------------------------------------------------------
+-- helpers
+---------------------------------------------------------------------
+local function new(className: string, props: { [string]: any }, children: { Instance }?): any
+	local obj = Instance.new(className)
+	for k, v in props do
+		if k ~= "Parent" then
+			obj[k] = v
+		end
+	end
+	for _, c in children or {} do
+		c.Parent = obj
+	end
+	obj.Parent = props.Parent
+	return obj
+end
+
+local function corner(r: number): UICorner
+	return new("UICorner", { CornerRadius = UDim.new(0, r) })
+end
+
+local function stroke(color: Color3, thickness: number): UIStroke
+	return new("UIStroke", { Color = color, Thickness = thickness, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+end
+
+local function textStroke(): UIStroke
+	return new("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 2, Transparency = 0.2 })
+end
+
+local function playSound(id: string, speed: number, volume: number, distortion: number?)
+	local s = new("Sound", { SoundId = id, PlaybackSpeed = speed, Volume = volume, Parent = SoundService })
+	if distortion then
+		new("DistortionSoundEffect", { Level = distortion, Parent = s })
+	end
+	s:Play()
+	s.Ended:Once(function()
+		s:Destroy()
+	end)
+	task.delay(8, function()
+		if s.Parent then
+			s:Destroy()
+		end
+	end)
+end
+
+local gui = new("ScreenGui", {
+	Name = "SplashHUD",
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = playerGui,
+})
+
+---------------------------------------------------------------------
+-- contador de geradores (topo)
+---------------------------------------------------------------------
+local counter = new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 52),
+	Size = UDim2.fromOffset(300, 64),
+	BackgroundColor3 = Color3.fromRGB(20, 18, 14),
+	BackgroundTransparency = 0.25,
+	Parent = gui,
+}, { corner(12), stroke(Color3.fromRGB(232, 214, 140), 2) })
+
+local counterLabel = new("TextLabel", {
+	BackgroundTransparency = 1,
+	Position = UDim2.fromOffset(0, 4),
+	Size = UDim2.new(1, 0, 0, 30),
+	Font = FONT,
+	TextSize = 22,
+	TextColor3 = Color3.fromRGB(255, 240, 190),
+	Text = "⚡ GERADORES 0/10",
+	Parent = counter,
+})
+
+local segRow = new("Frame", {
+	BackgroundTransparency = 1,
+	Position = UDim2.new(0, 14, 0, 38),
+	Size = UDim2.new(1, -28, 0, 16),
+	Parent = counter,
+}, {
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 4),
+	}),
+})
+
+local segments: { Frame } = {}
+local function rebuildSegments(total: number)
+	for _, s in segments do
+		s:Destroy()
+	end
+	table.clear(segments)
+	local w = math.floor((272 - (total - 1) * 4) / math.max(total, 1))
+	for i = 1, total do
+		segments[i] = new("Frame", {
+			Size = UDim2.fromOffset(w, 16),
+			BackgroundColor3 = Color3.fromRGB(70, 30, 30),
+			LayoutOrder = i,
+			Parent = segRow,
+		}, { corner(4) })
+	end
+end
+
+local function updateCounter()
+	local on = ReplicatedStorage:GetAttribute("GeneratorsOn") or 0
+	local total = ReplicatedStorage:GetAttribute("GeneratorsTotal") or Config.GENERATOR_COUNT
+	if #segments ~= total then
+		rebuildSegments(total)
+	end
+	counterLabel.Text = string.format("⚡ GERADORES %d/%d", on, total)
+	for i, s in segments do
+		s.BackgroundColor3 = if i <= on then Color3.fromRGB(70, 240, 110) else Color3.fromRGB(70, 30, 30)
+	end
+end
+ReplicatedStorage:GetAttributeChangedSignal("GeneratorsOn"):Connect(updateCounter)
+ReplicatedStorage:GetAttributeChangedSignal("GeneratorsTotal"):Connect(updateCounter)
+updateCounter()
+
+---------------------------------------------------------------------
+-- avisos (canto direito)
+---------------------------------------------------------------------
+local toastHolder = new("Frame", {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -16, 0, 130),
+	Size = UDim2.fromOffset(340, 400),
+	BackgroundTransparency = 1,
+	Parent = gui,
+}, {
+	new("UIListLayout", {
+		Padding = UDim.new(0, 6),
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+local toastOrder = 0
+
+local function toast(text: string, color: Color3?)
+	toastOrder += 1
+	local f = new("TextLabel", {
+		Size = UDim2.fromOffset(340, 36),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = Color3.fromRGB(15, 14, 12),
+		BackgroundTransparency = 0.2,
+		Font = Enum.Font.GothamBold,
+		TextSize = 16,
+		TextWrapped = true,
+		TextColor3 = color or Color3.new(1, 1, 1),
+		Text = text,
+		LayoutOrder = toastOrder,
+		Parent = toastHolder,
+	}, { corner(8), new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8) }) })
+	task.delay(5, function()
+		local t = TweenService:Create(f, TweenInfo.new(0.6), { TextTransparency = 1, BackgroundTransparency = 1 })
+		t:Play()
+		t.Completed:Wait()
+		f:Destroy()
+	end)
+end
+Remotes.Notify.OnClientEvent:Connect(toast)
+
+---------------------------------------------------------------------
+-- texto grande no meio
+---------------------------------------------------------------------
+local bigText = new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.36),
+	Size = UDim2.new(0.9, 0, 0, 70),
+	BackgroundTransparency = 1,
+	Font = FONT_SCARY,
+	TextScaled = true,
+	TextColor3 = Color3.fromRGB(255, 60, 60),
+	TextTransparency = 1,
+	Text = "",
+	ZIndex = 5,
+	Parent = gui,
+}, { textStroke() })
+local bigToken = 0
+
+local function shout(text: string, color: Color3, duration: number)
+	bigToken += 1
+	local my = bigToken
+	bigText.Text = text
+	bigText.TextColor3 = color
+	bigText.TextTransparency = 0
+	bigText.Size = UDim2.new(0.9, 0, 0, 90)
+	TweenService:Create(bigText, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Size = UDim2.new(0.9, 0, 0, 70) }):Play()
+	task.delay(duration, function()
+		if bigToken == my then
+			TweenService:Create(bigText, TweenInfo.new(0.8), { TextTransparency = 1 }):Play()
+		end
+	end)
+end
+
+---------------------------------------------------------------------
+-- introdução
+---------------------------------------------------------------------
+do
+	local intro = new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.35,
+		ZIndex = 20,
+		Parent = gui,
+	})
+	local title = new("TextLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.38),
+		Size = UDim2.new(0.9, 0, 0, 110),
+		BackgroundTransparency = 1,
+		Font = FONT_SCARY,
+		TextScaled = true,
+		TextColor3 = Color3.fromRGB(232, 214, 140),
+		Text = "SPLASH IT",
+		ZIndex = 21,
+		Parent = intro,
+	}, { textStroke() })
+	local sub = new("TextLabel", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(0.9, 0, 0, 120),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBold,
+		TextSize = 22,
+		TextWrapped = true,
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "Ligue os 10 geradores espalhados pelo mapa.\nNÃO ENCOSTE NA ÁGUA — nem um pouquinho.\nSe encostar... ele vem correndo.\n\nBlocos ROSA somem quando você pisa!",
+		ZIndex = 21,
+		Parent = intro,
+	}, { textStroke() })
+	task.delay(7, function()
+		local info = TweenInfo.new(1.2)
+		TweenService:Create(intro, info, { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(title, info, { TextTransparency = 1 }):Play()
+		TweenService:Create(sub, info, { TextTransparency = 1 }):Play()
+		task.wait(1.3)
+		intro:Destroy()
+	end)
+end
+
+---------------------------------------------------------------------
+-- marcadores dos geradores (aparecem através da névoa)
+---------------------------------------------------------------------
+local markerFolder = new("Folder", { Name = "MarcadoresGeradores", Parent = workspace.Terrain })
+type Marker = { info: Vector3Value, att: Attachment, icon: TextLabel, dist: TextLabel, gui: BillboardGui }
+local markers: { Marker } = {}
+
+local function refreshMarker(m: Marker)
+	local on = m.info:GetAttribute("On") == true
+	m.icon.Text = if on then "✔" else "⚡"
+	m.icon.TextColor3 = if on then Color3.fromRGB(80, 255, 120) else Color3.fromRGB(255, 220, 60)
+	m.dist.Visible = not on
+	m.gui.Size = if on then UDim2.fromOffset(34, 34) else UDim2.fromOffset(70, 56)
+end
+
+local function addMarker(info: Instance)
+	if not info:IsA("Vector3Value") then
+		return
+	end
+	local att = new("Attachment", { WorldPosition = info.Value, Parent = markerFolder })
+	local bb = new("BillboardGui", {
+		Adornee = att,
+		AlwaysOnTop = true,
+		Size = UDim2.fromOffset(70, 56),
+		LightInfluence = 0,
+		MaxDistance = math.huge,
+		ResetOnSpawn = false,
+		Parent = playerGui,
+	})
+	local icon = new("TextLabel", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 34),
+		Font = FONT,
+		TextScaled = true,
+		Text = "⚡",
+		Parent = bb,
+	}, { textStroke() })
+	local dist = new("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 34),
+		Size = UDim2.new(1, 0, 0, 20),
+		Font = Enum.Font.GothamBold,
+		TextSize = 14,
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		Parent = bb,
+	}, { textStroke() })
+	local m: Marker = { info = info, att = att, icon = icon, dist = dist, gui = bb }
+	table.insert(markers, m)
+	info:GetAttributeChangedSignal("On"):Connect(function()
+		refreshMarker(m)
+	end)
+	refreshMarker(m)
+end
+
+task.spawn(function()
+	local folder = ReplicatedStorage:WaitForChild("GeneratorInfo")
+	folder.ChildAdded:Connect(addMarker)
+	for _, c in folder:GetChildren() do
+		addMarker(c)
+	end
+end)
+
+---------------------------------------------------------------------
+-- perseguição: borda vermelha, aviso e cronômetro
+---------------------------------------------------------------------
+local vignette = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, Parent = gui })
+local function edge(rotation: number, size: UDim2, pos: UDim2, anchor: Vector2)
+	new("Frame", {
+		AnchorPoint = anchor,
+		Position = pos,
+		Size = size,
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.fromRGB(150, 0, 0),
+		Parent = vignette,
+	}, {
+		new("UIGradient", {
+			Rotation = rotation,
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) }),
+		}),
+	})
+end
+edge(90, UDim2.fromScale(1, 0.3), UDim2.fromScale(0, 0), Vector2.new(0, 0))
+edge(-90, UDim2.fromScale(1, 0.3), UDim2.fromScale(0, 1), Vector2.new(0, 1))
+edge(0, UDim2.fromScale(0.22, 1), UDim2.fromScale(0, 0), Vector2.new(0, 0))
+edge(180, UDim2.fromScale(0.22, 1), UDim2.fromScale(1, 0), Vector2.new(1, 0))
+
+local chaseLabel = new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -110),
+	Size = UDim2.new(0.8, 0, 0, 56),
+	BackgroundTransparency = 1,
+	Font = FONT_SCARY,
+	TextScaled = true,
+	TextColor3 = Color3.fromRGB(255, 50, 50),
+	Text = "ELE ESTÁ VINDO",
+	Visible = false,
+	Parent = gui,
+}, { textStroke() })
+local chaseInfo = new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -80),
+	Size = UDim2.new(0.8, 0, 0, 26),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.GothamBold,
+	TextSize = 20,
+	TextColor3 = Color3.new(1, 1, 1),
+	Text = "",
+	Visible = false,
+	Parent = gui,
+}, { textStroke() })
+
+local function myMonster(): Model?
+	for _, m in CollectionService:GetTagged("Monster") do
+		if m:GetAttribute("Target") == player.UserId then
+			return m
+		end
+	end
+	return nil
+end
+
+local lastMarkerUpdate = 0
+RunService.RenderStepped:Connect(function()
+	local now = os.clock()
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+
+	-- marcadores (4x por segundo)
+	if now - lastMarkerUpdate > 0.25 then
+		lastMarkerUpdate = now
+		for _, m in markers do
+			if root then
+				m.dist.Text = string.format("%dm", math.floor((m.att.WorldPosition - root.Position).Magnitude / 3.57))
+			end
+		end
+	end
+
+	-- perseguição
+	local monster = myMonster()
+	local chased = monster ~= nil and not ReplicatedStorage:GetAttribute("Won")
+	vignette.Visible = chased
+	chaseLabel.Visible = chased
+	chaseInfo.Visible = chased
+	if chased and monster then
+		local pulse = (math.sin(now * 8) + 1) / 2
+		chaseLabel.TextTransparency = pulse * 0.5
+		for _, e: any in vignette:GetChildren() do
+			e.BackgroundTransparency = 0.15 + pulse * 0.35
+		end
+		local left = math.max(0, (monster:GetAttribute("EndTime") or 0) - workspace:GetServerTimeNow())
+		local mroot = monster.PrimaryPart
+		local d = if mroot and root then (mroot.Position - root.Position).Magnitude / 3.57 else 0
+		chaseInfo.Text = string.format("Sobreviva por %ds   •   ele está a %dm", math.ceil(left), math.floor(d))
+	end
+end)
+
+---------------------------------------------------------------------
+-- encostou na água
+---------------------------------------------------------------------
+local flash = new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.fromRGB(40, 120, 140),
+	BackgroundTransparency = 1,
+	ZIndex = 8,
+	Parent = gui,
+})
+
+Remotes.Splash.OnClientEvent:Connect(function(alreadyChased: boolean)
+	flash.BackgroundTransparency = 0.3
+	TweenService:Create(flash, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
+	playSound(Config.Sounds.Splash, 0.7, 1.5)
+	if alreadyChased then
+		shout("ELE FICOU MAIS RÁPIDO!", Color3.fromRGB(255, 70, 70), 1.6)
+	else
+		shout("VOCÊ ENCOSTOU NA ÁGUA...", Color3.fromRGB(255, 70, 70), 2.2)
+		task.delay(0.6, function()
+			playSound(Config.Sounds.MonsterDrone, 0.25, 3, 0.9)
+		end)
+	end
+end)
+
+Remotes.Escaped.OnClientEvent:Connect(function()
+	shout("ele perdeu seu rastro... por enquanto", Color3.fromRGB(255, 230, 160), 2.5)
+end)
+
+---------------------------------------------------------------------
+-- JUMPSCARE
+---------------------------------------------------------------------
+local scare = new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	Visible = false,
+	ZIndex = 50,
+	Parent = gui,
+})
+local face = new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.fromScale(0.7, 0.95),
+	BackgroundColor3 = Color3.fromRGB(14, 12, 14),
+	ZIndex = 51,
+	Parent = scare,
+}, { corner(400), new("UIAspectRatioConstraint", { AspectRatio = 0.7 }) })
+local function faceBit(pos: UDim2, size: UDim2, color: Color3, round: boolean, rot: number?)
+	return new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = pos,
+		Size = size,
+		Rotation = rot or 0,
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		ZIndex = 52,
+		Parent = face,
+	}, if round then { corner(400) } else {})
+end
+local eye1 = faceBit(UDim2.fromScale(0.3, 0.33), UDim2.fromScale(0.26, 0.17), Color3.new(1, 1, 1), true)
+local eye2 = faceBit(UDim2.fromScale(0.72, 0.36), UDim2.fromScale(0.15, 0.1), Color3.new(1, 1, 1), true)
+faceBit(UDim2.fromScale(0.3, 0.33), UDim2.fromScale(0.04, 0.03), Color3.new(0, 0, 0), true).ZIndex = 53
+faceBit(UDim2.fromScale(0.72, 0.36), UDim2.fromScale(0.03, 0.02), Color3.new(0, 0, 0), true).ZIndex = 53
+local mouth = faceBit(UDim2.fromScale(0.5, 0.72), UDim2.fromScale(0.75, 0.24), Color3.fromRGB(110, 0, 0), true, -6)
+for i = 0, 9 do
+	local x = 0.18 + i * 0.07
+	faceBit(UDim2.fromScale(x, 0.63 + (i % 2) * 0.02), UDim2.fromScale(0.035, 0.07), Color3.fromRGB(235, 228, 205), false, (i % 3 - 1) * 12).ZIndex = 53
+	faceBit(UDim2.fromScale(x + 0.035, 0.81 - (i % 2) * 0.02), UDim2.fromScale(0.035, 0.06), Color3.fromRGB(235, 228, 205), false, (i % 3 - 1) * -12).ZIndex = 53
+end
+local redFlash = new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.fromRGB(200, 0, 0),
+	BackgroundTransparency = 1,
+	ZIndex = 60,
+	Parent = scare,
+})
+
+Remotes.Jumpscare.OnClientEvent:Connect(function()
+	scare.Visible = true
+	playSound(Config.Sounds.Jumpscare, 0.35, 6, 1)
+	playSound(Config.Sounds.MonsterDrone, 0.6, 6, 1)
+	playSound(Config.Sounds.MonsterSteps, 0.3, 5, 1)
+	local start = os.clock()
+	local rnd = Random.new()
+	while os.clock() - start < 1.5 do
+		local k = 1 + (os.clock() - start) * 0.6
+		face.Size = UDim2.fromScale(0.7 * k, 0.95 * k)
+		face.Position = UDim2.fromScale(0.5 + rnd:NextNumber(-0.02, 0.02), 0.5 + rnd:NextNumber(-0.02, 0.02))
+		face.Rotation = rnd:NextNumber(-6, 6)
+		eye1.Size = UDim2.fromScale(0.26 + rnd:NextNumber(-0.03, 0.03), 0.17)
+		eye2.Visible = rnd:NextNumber() > 0.1
+		mouth.Size = UDim2.fromScale(0.75, 0.24 + rnd:NextNumber(0, 0.06))
+		redFlash.BackgroundTransparency = if rnd:NextNumber() < 0.25 then 0.4 else 1
+		task.wait()
+	end
+	face.Size = UDim2.fromScale(0.7, 0.95)
+	scare.Visible = false
+	shout("ELE TE PEGOU", Color3.fromRGB(255, 50, 50), 2.5)
+end)
+
+---------------------------------------------------------------------
+-- vitória
+---------------------------------------------------------------------
+local winFrame = new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.fromRGB(255, 250, 220),
+	BackgroundTransparency = 1,
+	Visible = false,
+	ZIndex = 30,
+	Parent = gui,
+})
+new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.4),
+	Size = UDim2.new(0.9, 0, 0, 110),
+	BackgroundTransparency = 1,
+	Font = FONT,
+	TextScaled = true,
+	TextColor3 = Color3.fromRGB(90, 255, 130),
+	Text = "VOCÊS ESCAPARAM!",
+	ZIndex = 31,
+	Parent = winFrame,
+}, { textStroke() })
+local winSub = new("TextLabel", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.fromScale(0.5, 0.52),
+	Size = UDim2.new(0.9, 0, 0, 60),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.GothamBold,
+	TextSize = 24,
+	TextColor3 = Color3.new(1, 1, 1),
+	Text = "",
+	ZIndex = 31,
+	Parent = winFrame,
+}, { textStroke() })
+
+local function onWonChanged()
+	local won = ReplicatedStorage:GetAttribute("Won") == true
+	winFrame.Visible = won
+	if won then
+		winFrame.BackgroundTransparency = 0
+		TweenService:Create(winFrame, TweenInfo.new(2), { BackgroundTransparency = 1 }):Play()
+		task.spawn(function()
+			while ReplicatedStorage:GetAttribute("Won") do
+				local left = (ReplicatedStorage:GetAttribute("ResetAt") or 0) - workspace:GetServerTimeNow()
+				winSub.Text = string.format("Todos os geradores foram ligados!\nNova rodada em %ds", math.max(0, math.ceil(left)))
+				task.wait(0.25)
+			end
+		end)
+	end
+end
+ReplicatedStorage:GetAttributeChangedSignal("Won"):Connect(onWonChanged)
+onWonChanged()
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="LocalScript" referent="15">
+          <Properties>
+            <string name="Name">MonsterFX</string>
+            <string name="Source"><![CDATA[--[[
+	Efeitos do Distorcido no cliente:
+	  • braços e pernas balançando enquanto ele corre
+	  • cabeça tremendo/glitchando, corpo "piscando"
+	  • se ele estiver atrás de VOCÊ: contorno vermelho através das paredes,
+	    tela tremendo, batimento cardíaco e cores drenadas
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+
+local player = Players.LocalPlayer
+local rng = Random.new()
+
+type Tracked = {
+	welds: { Weld },
+	parts: { BasePart },
+	phase: number,
+	blinkUntil: number,
+}
+local tracked: { [Model]: Tracked } = {}
+
+local function track(model: Instance)
+	if not model:IsA("Model") or tracked[model] then
+		return
+	end
+	local data: Tracked = { welds = {}, parts = {}, phase = rng:NextNumber(0, 10), blinkUntil = 0 }
+	for _, d in model:GetDescendants() do
+		if d:IsA("Weld") and d:GetAttribute("BaseC0") then
+			table.insert(data.welds, d)
+		elseif d:IsA("BasePart") and d.Name ~= "Raiz" then
+			table.insert(data.parts, d)
+		end
+	end
+	tracked[model] = data
+
+	if model:GetAttribute("Target") == player.UserId then
+		local h = Instance.new("Highlight")
+		h.Name = "ContornoPerseguicao"
+		h.Adornee = model
+		h.FillColor = Color3.new(0, 0, 0)
+		h.FillTransparency = 0.6
+		h.OutlineColor = Color3.fromRGB(255, 30, 30)
+		h.OutlineTransparency = 0
+		h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		h.Parent = model
+	end
+end
+
+for _, m in CollectionService:GetTagged("Monster") do
+	track(m)
+end
+CollectionService:GetInstanceAddedSignal("Monster"):Connect(track)
+
+---------------------------------------------------------------------
+-- animação de todos os monstros
+---------------------------------------------------------------------
+RunService.RenderStepped:Connect(function()
+	local t = os.clock()
+	for model, data in tracked do
+		if not model.Parent then
+			tracked[model] = nil
+			continue
+		end
+		local leaving = model:GetAttribute("Leaving") == true
+		local speed = if leaving then 30 else 11
+
+		for _, weld in data.welds do
+			local part1 = weld.Part1
+			if not part1 then
+				continue
+			end
+			local base: CFrame = weld:GetAttribute("BaseC0")
+			local swing = weld:GetAttribute("Swing")
+			local cf = base
+			if swing and swing ~= 0 then
+				local half = part1.Size.Y / 2
+				local angle = math.sin(t * speed + data.phase) * swing * 0.8
+				cf = base * CFrame.new(0, half, 0) * CFrame.Angles(angle, 0, 0) * CFrame.new(0, -half, 0)
+			end
+			if part1:GetAttribute("IsHead") then
+				if rng:NextNumber() < 0.14 then
+					cf = base
+						* CFrame.new(rng:NextNumber(-0.4, 0.4), rng:NextNumber(-0.3, 0.3), rng:NextNumber(-0.3, 0.3))
+						* CFrame.Angles(rng:NextNumber(-0.5, 0.5), rng:NextNumber(-0.6, 0.6), rng:NextNumber(-0.7, 0.7))
+				else
+					cf = base * CFrame.Angles(0, math.sin(t * 3) * 0.15, math.sin(t * 23) * 0.06)
+				end
+			end
+			weld.C0 = cf
+		end
+
+		-- piscadas de glitch
+		if t > data.blinkUntil and rng:NextNumber() < 0.02 then
+			data.blinkUntil = t + rng:NextNumber(0.04, 0.12)
+		end
+		local hidden = t < data.blinkUntil
+		for _, p in data.parts do
+			p.LocalTransparencyModifier = if hidden then 1 else 0
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- efeitos quando VOCÊ está sendo perseguido
+---------------------------------------------------------------------
+local camera = workspace.CurrentCamera
+local cc = Instance.new("ColorCorrectionEffect")
+cc.Name = "Perseguicao"
+cc.Parent = camera
+
+local heartbeat = Instance.new("Sound")
+heartbeat.SoundId = Config.Sounds.Heartbeat
+heartbeat.PlaybackSpeed = 0.45
+heartbeat.Volume = 2.5
+heartbeat.Parent = SoundService
+
+local BASE_FOV = 70
+local intensity = 0 -- 0..1, suavizado
+local nextBeat = 0
+
+local function myMonster(): Model?
+	for model in tracked do
+		if model.Parent and model:GetAttribute("Target") == player.UserId and not model:GetAttribute("Leaving") then
+			return model
+		end
+	end
+	return nil
+end
+
+RunService:BindToRenderStep("SplashMonsterFX", Enum.RenderPriority.Camera.Value + 1, function(dt)
+	if camera ~= workspace.CurrentCamera then
+		camera = workspace.CurrentCamera
+		cc.Parent = camera
+	end
+
+	local target = 0
+	local monster = myMonster()
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if monster and monster.PrimaryPart and root then
+		local d = (monster.PrimaryPart.Position - root.Position).Magnitude
+		target = math.clamp(1 - d / 160, 0.15, 1)
+	end
+	intensity += (target - intensity) * math.min(1, dt * 4)
+
+	cc.Saturation = -0.75 * intensity
+	cc.Contrast = 0.25 * intensity
+	cc.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 165, 165), intensity)
+
+	if intensity > 0.02 then
+		camera.FieldOfView = BASE_FOV + 12 * intensity * intensity
+		-- tremedeira (mais forte quanto mais perto)
+		local shake = (intensity ^ 2) * 0.012
+		camera.CFrame = camera.CFrame
+			* CFrame.Angles(rng:NextNumber(-shake, shake), rng:NextNumber(-shake, shake), rng:NextNumber(-shake, shake) * 0.5)
+		-- batimento cardíaco
+		local now = os.clock()
+		if target > 0 and now >= nextBeat then
+			heartbeat:Play()
+			nextBeat = now + (1.1 - 0.8 * intensity)
+		end
+	elseif camera.FieldOfView ~= BASE_FOV then
+		camera.FieldOfView = BASE_FOV
+	end
+end)
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="Workspace" referent="16">
+    <Properties>
+      <string name="Name">Workspace</string>
+      <bool name="NeedsPivotMigration">false</bool>
+      <bool name="StreamingEnabled">false</bool>
+    </Properties>
+  </Item>
+</roblox>
