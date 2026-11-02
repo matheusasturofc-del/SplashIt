@@ -415,7 +415,7 @@ scene.environmentIntensity = 0.35;
 // reflexos de ambiente dobram o tempo de render sem GPU; só liga com ?env=1
 const ENV = Q.get('env') === '1';
 if (!ENV) scene.environment = null;
-const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 400);
+const camera = new THREE.PerspectiveCamera(38, W / H, 0.3, 160);
 
 function gradientTex(stops, h = 512) {
   const c = document.createElement('canvas'); c.width = 4; c.height = h;
@@ -493,8 +493,8 @@ function buildEnvironment() {
   boxC(-60, -1, -60, SXL, 0, 60, g); boxC(SXR, -1, -60, 60, 0, 60, g);
   boxC(SXL, -1, -60, SXR, 0, -SZ, g); boxC(SXL, -1, SZ, SXR, 0, 60, g);
   boxC(SXL, PIT - 0.2, -SZ, SXR, PIT, SZ, M('#3b404b'));
-  boxC(SXL - 0.05, PIT, -SZ, SXL, 0, SZ, M('#6b7280')); boxC(SXR, PIT, -SZ, SXR + 0.05, 0, SZ, M('#6b7280'));
-  boxC(SXL, PIT, -SZ - 0.05, SXR, 0, -SZ, M('#6b7280'));
+  boxC(SXL, PIT, -SZ, SXL + 0.05, -0.01, SZ, M('#6b7280')); boxC(SXR - 0.05, PIT, -SZ, SXR, -0.01, SZ, M('#6b7280'));
+  boxC(SXL + 0.05, PIT, -SZ, SXR - 0.05, -0.01, -SZ + 0.05, M('#6b7280'));
   boxC(-60, 0, 3.0, 60, 0.06, 5.0, M('#d4d0c8'));
   boxC(-60, -0.02, 5.0, 60, 0.03, 13, M(COL.road));
   for (let x = -40; x < 40; x += 3) boxC(x, 0.03, 8.9, x + 1.6, 0.05, 9.1, M('#f1f1f1'));
@@ -517,9 +517,9 @@ function buildFloor(i) {
   const fg = grp(null);
   const W1 = M(COL.wall), W2 = M(COL.wall2);
   boxC(-BX - 0.1, y0 - 0.08, -BZ, SXL, y0 + 0.08, BZ, M(COL.slab), fg);
-  boxC(SXR, y0 - 0.08, -BZ, BX + 0.1, y0 + 0.08, BZ, M(COL.slab), fg);
-  boxC(-BX - 0.1, y0 - 0.08, BZ - 0.02, SXL, y0 + 0.08, BZ + 0.02, M('#e9a23b'), fg);
-  boxC(SXR, y0 - 0.08, BZ - 0.02, BX + 0.1, y0 + 0.08, BZ + 0.02, M('#e9a23b'), fg);
+  boxC(SXR + 0.01, y0 - 0.08, -BZ, BX + 0.1, y0 + 0.08, BZ, M(COL.slab), fg);
+  boxC(-BX - 0.1, y0 - 0.07, BZ, SXL, y0 + 0.07, BZ + 0.04, M('#e9a23b'), fg);
+  boxC(SXR + 0.01, y0 - 0.07, BZ, BX + 0.1, y0 + 0.07, BZ + 0.04, M('#e9a23b'), fg);
   boxC(-BX - 0.1, y0 + 0.08, -BZ, -BX, y1 - 0.08, BZ, W1, fg);
   boxC(BX, y0 + 0.08, -BZ, BX + 0.1, y1 - 0.08, BZ, W1, fg);
   boxC(-BX, y0 + 0.08, -BZ - 0.1, SXL, y1 - 0.08, -BZ, W1, fg);
@@ -543,7 +543,7 @@ function buildFloor(i) {
   const pb = boxC(DOORX - 0.03, y0 + 0.02, 0, DOORX + 0.03, y0 + DH, DW, pm, fg);
   boxC(DOORX - 0.16, y0 + DH + 0.14, -0.22, DOORX - 0.12, y0 + DH + 0.36, 0.22, M('#151820'), fg);
   const indFace = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.2), new THREE.MeshBasicMaterial({ map: textTex(String(i === 0 ? 'T' : i), { w: 256, h: 128, font: '700 100px F', col: '#ff4d3d', bg: '#151820' }) }));
-  indFace.rotation.y = -Math.PI / 2; indFace.position.set(DOORX - 0.165, y0 + DH + 0.25, 0); fg.add(indFace);
+  indFace.rotation.y = -Math.PI / 2; indFace.position.set(DOORX - 0.175, y0 + DH + 0.25, 0); fg.add(indFace);
   boxC(DOORX - 0.14, y0 + 0.95, -0.95, DOORX - 0.1, y0 + 1.3, -0.78, M('#c3cad4', { metalness: 0.5 }), fg);
   const btn = sph(0.035, M('#dfe4ea', { emissive: '#ffcf3a', emissiveIntensity: 0 }).clone(), DOORX - 0.15, y0 + 1.12, -0.865, fg);
   LANDING.push({ pa, pb, indFace, btn, y0 });
@@ -555,18 +555,18 @@ function buildFloor(i) {
   const pot = mesh(new THREE.CylinderGeometry(0.18, 0.13, 0.35, 16), M('#c0703c')); pot.position.set(-3.7, y0 + 0.25, -1.8); fg.add(pot);
   for (let k = 0; k < 4; k++) { const lf = sph(1, M('#3f9a4a'), -3.7 + (k - 1.5) * 0.1, y0 + 0.62 + (k % 2) * 0.12, -1.8, fg); lf.scale.set(0.12, 0.32, 0.12); lf.rotation.z = (k - 1.5) * 0.4; }
   const sofaC = ['#e76f51', '#2a9d8f', '#8e5bd1', '#f4a261', '#4d7cfe'][i];
-  boxC(2.0, y0 + 0.08, -2.3, 3.8, y0 + 0.55, -1.6, M(sofaC), fg);
+  boxC(2.0, y0 + 0.08, -2.19, 3.8, y0 + 0.55, -1.6, M(sofaC), fg);
   boxC(2.0, y0 + 0.55, -2.4, 3.8, y0 + 1.0, -2.2, M(sofaC), fg);
   const num = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), new THREE.MeshBasicMaterial({ map: textTex(i === 0 ? 'TÉRREO' : `${i}º ANDAR`, { w: 512, h: 256, font: '700 120px F', col: '#a3896a' }), transparent: true }));
-  num.position.set(-3.0, y0 + 1.75, -BZ + 0.02); fg.add(num);
+  num.position.set(-3.0, y0 + 1.75, -BZ + 0.04); fg.add(num);
   FLOORS.push(fg);
   asm(fg, 0.15 + i * 0.28, 0.75, { dy: 9, ry: 0.9 * (i % 2 ? 1 : -1), s: 0.7 });
 }
 function buildMachineRoom() {
   const g = grp(null);
   boxC(-BX - 0.2, ROOF - 0.1, -BZ - 0.1, SXL, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
-  boxC(SXR, ROOF - 0.1, -BZ - 0.1, BX + 0.2, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
-  boxC(SXL, ROOF - 0.1, -BZ - 0.1, SXR, ROOF + 0.1, -SZ, M(COL.slab), g);
+  boxC(SXR + 0.01, ROOF - 0.1, -BZ - 0.1, BX + 0.2, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
+  boxC(SXL, ROOF - 0.1, -BZ - 0.1, SXR + 0.01, ROOF + 0.1, -SZ - 0.01, M(COL.slab), g);
   boxC(SXL, ROOF - 0.1, SZ, SXR, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
   for (const z of [-0.75, 0.75]) boxC(SXL, ROOF - 0.05, z - 0.1, SXR, ROOF + 0.12, z + 0.1, M('#d64545'), g);
   boxC(-2.4, ROOF + 0.1, -2.0, 3.4, 14.3, -1.9, M(COL.mr), g);
@@ -574,7 +574,7 @@ function buildMachineRoom() {
   boxC(3.4, ROOF + 0.1, -2.0, 3.5, 14.3, 1.6, M(COL.mr), g);
   boxC(-2.6, 14.3, -2.1, 3.6, 14.45, 1.7, M(COL.slab), g);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.3), new THREE.MeshBasicMaterial({ map: textTex('CASA DE MÁQUINAS', { w: 1024, h: 128, font: '700 80px F', col: '#8d7a62' }), transparent: true }));
-  sign.position.set(-0.9, 14.0, -1.88); g.add(sign);
+  sign.position.set(-0.9, 14.0, -1.86); g.add(sign);
   const rl = M('#8a8f96', { metalness: 0.5 });
   for (const [a, b] of [[-BX, -2.6], [3.6, BX]]) {
     boxC(a, ROOF + 0.9, BZ - 0.05, b, ROOF + 0.96, BZ + 0.05, rl, g);
@@ -612,15 +612,13 @@ function buildCabin() {
   const hw = CABW / 2, hd = CABD / 2;
   boxC(-hw, 0, -hd, hw, 0.12, hd, dk, inner);
   boxC(-hw, CABH - 0.1, -hd, hw, CABH, hd, blue, inner);
-  boxC(-hw, 0.12, -hd, hw, CABH - 0.1, -hd + 0.07, blue, inner);
-  boxC(-hw + 0.07, 0.12, -hd + 0.07, hw - 0.07, CABH - 0.1, -hd + 0.1, wood, inner);
+  boxC(-hw + 0.07, 0.12, -hd, hw - 0.07, CABH - 0.1, -hd + 0.07, blue, inner);
+  boxC(-hw + 0.07, 0.12, -hd + 0.07, hw - 0.1, CABH - 0.1, -hd + 0.1, wood, inner);
   boxC(hw - 0.07, 0.12, -hd, hw, CABH - 0.1, hd, blue, inner);
-  boxC(hw - 0.1, 0.12, -hd + 0.07, hw - 0.07, CABH - 0.1, hd, wood, inner);
+  boxC(hw - 0.1, 0.12, -hd + 0.07, hw - 0.07, CABH - 0.1, hd - 0.02, wood, inner);
   boxC(-hw, 0.12, -hd, -hw + 0.07, CABH - 0.1, -0.55, blue, inner);
   boxC(-hw, 0.12, 0.55, -hw + 0.07, CABH - 0.1, hd, blue, inner);
   boxC(-hw, 1.92, -0.55, -hw + 0.07, CABH - 0.1, 0.55, blue, inner);
-  boxC(-hw, 0.12, hd - 0.07, -hw + 0.08, CABH - 0.1, hd, blue, inner);
-  boxC(hw - 0.08, 0.12, hd - 0.07, hw, CABH - 0.1, hd, blue, inner);
   const cpm = M('#c9d0da', { metalness: 0.6, roughness: 0.3 });
   R.cdA = boxC(-hw - 0.05, 0.12, -0.55, -hw - 0.01, 1.92, 0, cpm, inner);
   R.cdB = boxC(-hw - 0.05, 0.12, 0, -hw - 0.01, 1.92, 0.55, cpm, inner);
@@ -651,7 +649,7 @@ function buildDrumPhase() {
   R.drum = grp(g, DRUM.x, DRUM.y, 0);
   cylZ(DRUM.r, 0.5, M(COL.rope), 0, 0, 0, R.drum);
   cylZ(DRUM.r + 0.08, 0.04, M(COL.dsteel), 0, 0, 0.25, R.drum); cylZ(DRUM.r + 0.08, 0.04, M(COL.dsteel), 0, 0, -0.25, R.drum);
-  for (let k = 0; k < 4; k++) box(0.05, DRUM.r * 1.9, 0.02, M('#5a3d22'), 0, 0, 0.27, R.drum).rotation.z = k * Math.PI / 4;
+  for (let k = 0; k < 4; k++) box(0.05, DRUM.r * 1.9 - 0.02 * k, 0.02, M('#5a3d22'), 0, 0, 0.262 + 0.006 * k, R.drum).rotation.z = k * Math.PI / 4;
   boxC(DRUM.x - 0.1, ROOF + 0.1, -0.08, DRUM.x + 0.1, DRUM.y, 0.08, M('#7d858f'), g);
   R.m0 = grp(g, 0.95, 13.2, 0);
   R.m0body = box(0.9, 0.62, 0.6, new THREE.MeshStandardMaterial({ color: COL.motor, metalness: 0.3, roughness: 0.45 }), 0, 0, 0, R.m0);
@@ -667,7 +665,7 @@ function buildPulley() {
   R.wheel = grp(wh);
   const rim = mesh(new THREE.TorusGeometry(PUL.r, 0.07, 14, 48), M(COL.yellow, { metalness: 0.3, roughness: 0.35 })); R.wheel.add(rim);
   for (const z of [-0.2, 0.2]) { const r2 = mesh(new THREE.TorusGeometry(PUL.r + 0.04, 0.035, 10, 48), M(COL.dsteel)); r2.position.z = z; R.wheel.add(r2); }
-  for (let k = 0; k < 6; k++) { const sp = box(0.09, PUL.r * 2, 0.07, M(COL.yellow, { metalness: 0.3 }), 0, 0, 0, R.wheel); sp.rotation.z = k * Math.PI / 6; }
+  for (let k = 0; k < 6; k++) { const sp = box(0.09, PUL.r * 2 - 0.02 * k, 0.06 + 0.006 * k, M(COL.yellow, { metalness: 0.3 }), 0, 0, 0, R.wheel); sp.rotation.z = k * Math.PI / 6; }
   cylZ(0.14, 0.5, M(COL.steel, { metalness: 0.7, roughness: 0.25 }), 0, 0, 0, R.wheel);
   asm(wh, () => C.pul0 + 0.25, 0.7, { dy: 4, rz: 6, ry: 1.5, s: 0.1 });
   R.motor = grp(g, MOT.x, MOT.y, 0);
@@ -706,11 +704,11 @@ function buildCounterweight() {
   const fr = grp(g);
   const dk = M(COL.dsteel, { metalness: 0.4 });
   boxC(-CWW / 2 - 0.06, 0, -CWD / 2, -CWW / 2, CWH, CWD / 2, dk, fr); boxC(CWW / 2, 0, -CWD / 2, CWW / 2 + 0.06, CWH, CWD / 2, dk, fr);
-  boxC(-CWW / 2 - 0.06, CWH - 0.08, -CWD / 2, CWW / 2 + 0.06, CWH, CWD / 2, dk, fr); boxC(-CWW / 2 - 0.06, 0, -CWD / 2, CWW / 2 + 0.06, 0.08, CWD / 2, dk, fr);
+  boxC(-CWW / 2, CWH - 0.08, -CWD / 2 + 0.01, CWW / 2, CWH, CWD / 2 - 0.01, dk, fr); boxC(-CWW / 2, 0, -CWD / 2 + 0.01, CWW / 2, 0.08, CWD / 2 - 0.01, dk, fr);
   boxC(-0.04, CWH, -0.04, 0.04, CWH + 0.18, 0.04, dk, fr);
   asm(fr, () => C.cw0, 0.5, { dy: 5, ry: 2, s: 0.3 });
   for (let i = 0; i < 6; i++) {
-    const pl = boxC(-CWW / 2, 0.1 + i * 0.25, -CWD / 2 + 0.02, CWW / 2, 0.32 + i * 0.25, CWD / 2 - 0.02, M(COL.plate, { metalness: 0.6, roughness: 0.35 }), g);
+    const pl = boxC(-CWW / 2 + 0.01, 0.1 + i * 0.25, -CWD / 2 + 0.03, CWW / 2 - 0.01, 0.32 + i * 0.25, CWD / 2 - 0.03, M(COL.plate, { metalness: 0.6, roughness: 0.35 }), g);
     asm(pl, () => C.cwp0 + i * 0.22, 0.4, { dy: 4, ry: 3 });
   }
   R.cwShoes = grp(g);
@@ -724,7 +722,7 @@ function buildRails() {
       const x = RAILS[j], y0 = PIT + k * seg;
       const g = grp(null);
       boxC(x - 0.04, y0, -0.06, x + 0.04, y0 + seg, 0.06, rm, g);
-      boxC(x - 0.06, y0, -0.015, x + 0.06, y0 + seg, 0.015, rm, g);
+      boxC(x - 0.06, y0 + 0.003, -0.015, x + 0.06, y0 + seg - 0.003, 0.015, rm, g);
       if (j === 0) boxC(SXL + 0.1, y0 + 0.4, -0.05, x, y0 + 0.5, 0.05, M('#6f7887'), g);
       if (j === 3) boxC(x, y0 + 0.4, -0.05, SXR, y0 + 0.5, 0.05, M('#6f7887'), g);
       const q0 = k / n;
@@ -739,7 +737,7 @@ function buildGovernor() {
   const wg = grp(g, GOV.x, GOV.y, GOV.z);
   R.govW = grp(wg);
   R.govRim = mesh(new THREE.TorusGeometry(GOV.r, 0.035, 10, 32), new THREE.MeshStandardMaterial({ color: COL.yellow, metalness: 0.3, roughness: 0.5 })); R.govW.add(R.govRim);
-  for (let k = 0; k < 3; k++) box(0.03, GOV.r * 2, 0.03, M(COL.dsteel), 0, 0, 0, R.govW).rotation.z = k * Math.PI / 3;
+  for (let k = 0; k < 3; k++) box(0.03, GOV.r * 2 - 0.01 * k, 0.026 + 0.006 * k, M(COL.dsteel), 0, 0, 0, R.govW).rotation.z = k * Math.PI / 3;
   R.fly = [sph(0.045, M('#333'), 0.08, 0, 0.04, R.govW), sph(0.045, M('#333'), -0.08, 0, 0.04, R.govW)];
   asm(wg, () => C.gov0 + 0.2, 0.6, { dy: 3, rz: 8, s: 0.1 });
   const tg = grp(g, GOV.x, PIT + 0.35, GOV.z);
@@ -840,8 +838,8 @@ function buildHost() {
   const skin = M('#f2c29b'), vest = M('#ff8a1c', { roughness: 0.5 }), shirt = M('#2f6db5');
   HOST.body = grp(root);
   add(mesh(new THREE.CapsuleGeometry(0.62, 0.5, 8, 24), shirt), HOST.body).position.y = 0.3;
-  const v = add(mesh(new THREE.CapsuleGeometry(0.64, 0.45, 8, 24), vest), HOST.body); v.position.y = 0.28;
-  for (const y of [0.1, 0.4]) add(mesh(new THREE.CylinderGeometry(0.655, 0.655, 0.08, 32, 1, true), M('#e6e9ee', { metalness: 0.6, roughness: 0.25 })), HOST.body).position.y = y;
+  const v = add(mesh(new THREE.CapsuleGeometry(0.67, 0.36, 8, 24), vest), HOST.body); v.position.y = 0.24;
+  for (const y of [0.1, 0.4]) add(mesh(new THREE.CylinderGeometry(0.69, 0.69, 0.08, 32, 1, true), M('#e6e9ee', { metalness: 0.6, roughness: 0.25 })), HOST.body).position.y = y;
   HOST.head = grp(root, 0, 1.38, 0);
   sph(0.55, skin, 0, 0, 0, HOST.head);
   sph(0.08, M('#eab08a'), 0, -0.05, 0.54, HOST.head);
