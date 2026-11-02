@@ -1,0 +1,28 @@
+<svg id="icon" width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#2b3a63"/><stop offset="1" stop-color="#121829"/></radialGradient>
+  <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#7fb4ff" stroke-opacity=".10" stroke-width="2"/></pattern>
+  <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe066"/><stop offset=".55" stop-color="#ffc62b"/><stop offset="1" stop-color="#f29b0c"/></linearGradient>
+  <linearGradient id="brim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23f"/><stop offset="1" stop-color="#e58a00"/></linearGradient>
+  <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2fc174"/><stop offset="1" stop-color="#17864c"/></linearGradient>
+  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity=".45"/></filter>
+ </defs>
+ <rect width="1024" height="1024" fill="url(#bg)"/>
+ <rect width="1024" height="1024" fill="url(#grid)"/>
+ <!-- trilhos de elevador ao fundo -->
+ <g stroke="#7fb4ff" stroke-opacity=".22" stroke-width="10" stroke-linecap="round"><path d="M250 120V900M774 120V900"/></g>
+ <!-- capacete -->
+ <g filter="url(#sh)">
+  <path d="M232 600 C232 400 362 270 512 270 C662 270 792 400 792 600 Z" fill="url(#dome)"/>
+  <path d="M470 278 C480 260 544 260 554 278 L566 600 H458 Z" fill="#f0a91e"/>
+  <path d="M300 470 C320 380 390 318 450 300" fill="none" stroke="#fff6c8" stroke-width="26" stroke-linecap="round" opacity=".8"/>
+  <rect x="160" y="580" width="704" height="92" rx="46" fill="url(#brim)"/>
+  <rect x="190" y="592" width="644" height="20" rx="10" fill="#fff3b0" opacity=".55"/>
+ </g>
+ <!-- selo de obra entregue -->
+ <g transform="translate(700 690) rotate(-12)" filter="url(#sh)">
+  <circle r="150" fill="#ffffff"/>
+  <circle r="128" fill="url(#badge)"/>
+  <path d="M-62 4 L-18 50 L70 -46" fill="none" stroke="#fff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+ </g>
+</svg>

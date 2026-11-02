@@ -1,38 +1,47 @@
-# Vídeo: Como construir um elevador
+# Vídeo: Como construir um elevador (3D)
 
-Vídeo vertical (1080x1920, 30 fps) no formato "falha → conserto": cada peça entra montando na tela,
-algo dá errado, o mestre de obras reage e a próxima peça resolve o problema.
+Vídeo vertical (1080x1920, 30 fps) do canal **Obra Entregue**, no formato "falha → conserto":
+cada peça voa girando até o lugar, algo dá errado, o mestre de obras reage, e a próxima peça
+resolve o problema.
 
 ## Arquivos
 
 | Arquivo | O que faz |
 |---|---|
-| `script.json` | Roteiro: falas, pausas e termo técnico destacado de cada fala |
-| `tts.py` | Gera a narração com o Piper (voz `pt_BR-faber-medium`) e monta `build/timeline.json` |
-| `scene.html` + `scene.js` | Toda a animação, em Canvas, calculada a partir do tempo da narração |
+| `script.json` | Roteiro: falas, pausas, termo técnico destacado e motor de voz |
+| `tts.py` | Gera a narração e monta `build/timeline.json` (com o tempo de cada palavra) |
+| `tts_chatterbox.py` | Voz neural Chatterbox (MIT), conferida fala a fala com o Whisper |
+| `scene.html` + `scene.js` | Animação 3D em Three.js + camada 2D (legendas, etiquetas, balões) |
 | `render.js` | Renderiza os quadros no Chromium (Playwright) e cria `build/video_mudo.mp4` |
-| `mix.py` | Sintetiza efeitos e trilha, mixa com a narração e gera `elevador.mp4` |
+| `music.py` | Trilha original de 118 BPM, sintetizada (sem direitos de terceiros) |
+| `mix.py` | Efeitos sonoros, mixagem com narração e trilha, e o `elevador.mp4` final |
 
 ## Como gerar
 
-Requisitos: Python 3 com `numpy` e `piper-tts`, Node 18+, `ffmpeg`, Playwright com Chromium.
+Requisitos: Node 18+, `ffmpeg`, Playwright com Chromium, Python 3 com `numpy` e `scipy`.
+Para a voz neural, um segundo ambiente Python com `chatterbox-tts`, `setuptools<80` e `faster-whisper`.
 
 ```bash
 npm install
 ```
 
 ```bash
-mkdir -p voices && cd voices && for f in pt_BR-faber-medium.onnx pt_BR-faber-medium.onnx.json; do curl -sSLO "https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/faber/medium/$f"; done && cd ..
+python3 -m venv cbx && cbx/bin/pip install chatterbox-tts "setuptools<80" faster-whisper
 ```
+
+Coloque em `voices/` um áudio de referência de 10 a 20 s com a voz desejada (`ref_faber.wav`
+no `script.json`). Pode ser a sua própria voz gravada no celular: o vídeo passa a ter a sua voz.
 
 ```bash
-python3 tts.py && node render.js && python3 mix.py
+CHATTERBOX_PY=cbx/bin/python python3 tts.py && Q='?rs=0.85' node render.js && python3 mix.py
 ```
 
-Para conferir quadros soltos sem renderizar tudo: `node render.js stills 10 42.5` (gera `build/still_*.png`).
+- `Q` ajusta a qualidade do 3D: `rs` é a escala da resolução (1 = 1080x1920), `aa=0` desliga o antisserrilhado.
+- Para conferir quadros soltos: `node render.js stills 10 42.5` (gera `build/still_*.png`).
+- Sem GPU (como num servidor), cada quadro leva por volta de 1 s.
 
 ## Mudar o texto
 
-Edite `script.json` e rode os três comandos de novo. A animação usa as palavras das falas como
-marcos de tempo (por exemplo, a corda arrebenta quando o narrador diz "arrebenta"). Se você trocar
-uma dessas palavras, o `scene.js` avisa qual fala e qual palavra precisam ser ajustadas.
+Edite `script.json` e rode os comandos de novo. A animação usa palavras das falas como marcos
+(por exemplo, a corda arrebenta quando o narrador diz "arrebenta"). Se você trocar uma dessas
+palavras, o `scene.js` avisa qual fala e qual palavra precisam ser ajustadas.

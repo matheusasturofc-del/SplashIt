@@ -1,10 +1,15 @@
-"""Gera a narração de cada fala com o Piper e monta a linha do tempo.
+"""Gera a narração de cada fala e monta a linha do tempo.
+
+Motores (campo "engine" do script.json):
+  chatterbox  voz neural natural (precisa do Python com chatterbox-tts em CHATTERBOX_PY)
+  piper       voz mais simples e rápida
 
 Saídas:
   build/tts/<id>.wav   narração de cada fala (44.1 kHz mono)
-  build/timeline.json  início/fim de cada fala, usado pela animação e pela mixagem
+  build/timeline.json  início/fim de cada fala e de cada palavra
 """
 import json
+import os
 import subprocess
 import sys
 import wave
@@ -13,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 BUILD = ROOT / "build"
 TTS = BUILD / "tts"
-VOICES = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "voices"
+VOICES = Path(os.environ.get("VOICES", ROOT / "voices"))
 
 
 def duration(path: Path) -> float:
@@ -21,38 +26,67 @@ def duration(path: Path) -> float:
         return w.getnframes() / w.getframerate()
 
 
-def main() -> None:
+def stamp(line, engine):
+    return json.dumps([engine, line.get("say", line["text"])], ensure_ascii=False)
+
+
+def piper(script, line, out):
+    raw = out.with_suffix(".raw.wav")
+    subprocess.run([sys.executable, "-I", "-m", "piper", "-m", str(VOICES / f"{script['voice']}.onnx"), "-f", str(raw),
+                    "--length-scale", str(script.get("lengthScale", 1.0))],
+                   input=line.get("say", line["text"]).encode("utf-8"), check=True, capture_output=True)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw),
+                    "-af", "silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
+                           "silenceremove=start_periods=1:start_threshold=-50dB,areverse",
+                    "-ar", "44100", "-ac", "1", str(out)], check=True)
+    raw.unlink()
+
+
+def main():
     script = json.loads((ROOT / "script.json").read_text(encoding="utf-8"))
-    model = VOICES / f"{script['voice']}.onnx"
+    engine = script.get("engine", "piper")
     TTS.mkdir(parents=True, exist_ok=True)
+    all_lines = [(b, l) for b in script["beats"] for l in b["lines"]]
+
+    todo = []
+    for _, line in all_lines:
+        out = TTS / f"{line['id']}.wav"
+        tag = out.with_suffix(".txt")
+        if out.exists() and tag.exists() and tag.read_text(encoding="utf-8") == stamp(line, engine):
+            continue
+        todo.append(line)
+    if todo:
+        print(f"gerando {len(todo)} falas com {engine}...", flush=True)
+        if engine == "chatterbox":
+            py = os.environ.get("CHATTERBOX_PY")
+            if not py:
+                sys.exit("defina CHATTERBOX_PY com o python onde o chatterbox-tts está instalado")
+            cfg = script.get("chatterbox", {})
+            ref = cfg.get("ref")
+            job = {"ref": str(VOICES / ref) if ref else None, "exaggeration": cfg.get("exaggeration", 0.5), "cfg": cfg.get("cfg", 0.5),
+                   "lines": [{"id": l["id"], "say": l.get("say", l["text"]), "out": str(TTS / f"{l['id']}.wav")} for l in todo]}
+            jf = BUILD / "tts_jobs.json"
+            jf.write_text(json.dumps(job, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([py, str(ROOT / "tts_chatterbox.py"), str(jf)], check=True)
+        else:
+            for line in todo:
+                piper(script, line, TTS / f"{line['id']}.wav")
+        for line in todo:
+            (TTS / f"{line['id']}.txt").write_text(stamp(line, engine), encoding="utf-8")
 
     lines = []
     t = 0.35
     for bi, beat in enumerate(script["beats"]):
         for line in beat["lines"]:
-            raw = TTS / f"{line['id']}.raw.wav"
             out = TTS / f"{line['id']}.wav"
-            text = line.get("say", line["text"])
-            if not out.exists() or out.with_suffix(".txt").read_text(encoding="utf-8") != text:
-                subprocess.run(
-                    [sys.executable, "-I", "-m", "piper", "-m", str(model), "-f", str(raw),
-                     "--length-scale", str(script["lengthScale"])],
-                    input=text.encode("utf-8"), check=True, capture_output=True,
-                )
-                subprocess.run(
-                    ["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw),
-                     "-af", "silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
-                            "silenceremove=start_periods=1:start_threshold=-50dB,areverse",
-                     "-ar", "44100", "-ac", "1", str(out)],
-                    check=True,
-                )
-                raw.unlink()
-                out.with_suffix(".txt").write_text(text, encoding="utf-8")
             d = duration(out)
+            wj = Path(str(out) + ".words.json")
+            words = json.loads(wj.read_text(encoding="utf-8"))["words"] if wj.exists() and engine == "chatterbox" else []
             lines.append({
                 "id": line["id"], "beat": beat["id"], "beatIndex": bi,
-                "text": line["text"], "hl": line.get("hl"),
+                "text": line["text"], "say": line.get("say", line["text"]), "hl": line.get("hl"),
                 "start": round(t, 3), "end": round(t + d, 3),
+                "words": [{"w": w["w"], "s": round(t + w["s"], 3), "e": round(t + w["e"], 3)} for w in words],
             })
             t += d + line.get("pad", 0) + script["gapLine"]
         t += script["gapBeat"]

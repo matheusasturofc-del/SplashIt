@@ -1,84 +1,207 @@
 {
   "title": "Elevador",
+  "engine": "chatterbox",
+  "chatterbox": {
+    "ref": "ref_faber.wav",
+    "exaggeration": 0.6,
+    "cfg": 0.3
+  },
   "voice": "pt_BR-faber-medium",
   "lengthScale": 0.97,
-  "gapLine": 0.12,
-  "gapBeat": 0.35,
+  "gapLine": 0.1,
+  "gapBeat": 0.3,
   "beats": [
     {
       "id": "hook",
       "lines": [
-        { "id": "h1", "text": "Se você amarrar uma caixa numa corda e puxar com um motor lá do alto do prédio,", "pad": 0.3 },
-        { "id": "h2", "text": "você não vai ter um elevador. Vai ter um motor queimado.", "pad": 0.6 },
-        { "id": "h3", "text": "Porque ele tem que levantar sozinho o peso da cabine e de todo mundo lá dentro." }
+        {
+          "id": "h1",
+          "text": "Se você amarrar uma caixa numa corda e puxar com um motor lá do alto do prédio,",
+          "pad": 0.3
+        },
+        {
+          "id": "h2",
+          "text": "você não vai ter um elevador. Vai ter um motor queimado.",
+          "pad": 0.6
+        },
+        {
+          "id": "h3",
+          "text": "Porque ele tem que levantar sozinho o peso da cabine e de todo mundo lá dentro."
+        }
       ]
     },
     {
       "id": "contrapeso",
       "lines": [
-        { "id": "c1", "text": "Então você passa a corda por cima de uma roda lá no alto," },
-        { "id": "c2", "text": "e do outro lado pendura um bloco de ferro que pesa o mesmo que a cabine, mais metade das pessoas.", "pad": 0.3 },
-        { "id": "c3", "text": "Agora um lado equilibra o outro, e o motor só empurra a diferença." },
-        { "id": "c4", "text": "Esse é o contrapeso.", "hl": "contrapeso", "pad": 0.3 },
-        { "id": "c5", "text": "É por isso que, pela fresta da porta, às vezes você vê um bloco passando no sentido contrário." }
+        {
+          "id": "c1",
+          "text": "Então você passa a corda por cima de uma roda lá no alto,"
+        },
+        {
+          "id": "c2",
+          "text": "e do outro lado pendura um bloco de ferro que pesa o mesmo que a cabine, mais metade das pessoas.",
+          "pad": 0.3
+        },
+        {
+          "id": "c3",
+          "text": "Agora um lado equilibra o outro, e o motor só empurra a diferença."
+        },
+        {
+          "id": "c4",
+          "text": "Esse é o contrapeso.",
+          "hl": "contrapeso",
+          "pad": 0.3
+        },
+        {
+          "id": "c5",
+          "text": "É por isso que, pela fresta da porta, às vezes você vê um bloco passando no sentido contrário."
+        }
       ]
     },
     {
       "id": "guias",
       "lines": [
-        { "id": "g1", "text": "Mas uma caixa pendurada balança, gira e vai batendo nas paredes do poço.", "pad": 0.5 },
-        { "id": "g2", "text": "Então você parafusa trilhos de aço de cima a baixo, e a cabine e o contrapeso deslizam presos neles." },
-        { "id": "g3", "text": "Essas são as guias. É por isso que o elevador sobe reto, sem encostar em nada.", "hl": "guias" }
+        {
+          "id": "g1",
+          "text": "Mas uma caixa pendurada balança, gira e vai batendo nas paredes do poço.",
+          "pad": 0.5
+        },
+        {
+          "id": "g2",
+          "text": "Então você parafusa trilhos de aço de cima a baixo, e a cabine e o contrapeso deslizam presos neles."
+        },
+        {
+          "id": "g3",
+          "text": "Essas são as guias. É por isso que o elevador sobe reto, sem encostar em nada.",
+          "hl": "guias"
+        }
       ]
     },
     {
       "id": "cabos",
       "lines": [
-        { "id": "k1", "text": "Mas tudo depende de uma corda só. Se ela arrebenta, a cabine despenca.", "pad": 1.4 },
-        { "id": "k2", "text": "Então você troca a corda por vários cabos de aço, e cada um sozinho já aguentaria a cabine cheia." },
-        { "id": "k3", "text": "Esses são os cabos de tração.", "hl": "cabos de tração", "pad": 0.2 }
+        {
+          "id": "k1",
+          "text": "Mas tudo depende de uma corda só. Se ela arrebenta, a cabine despenca.",
+          "pad": 1.4
+        },
+        {
+          "id": "k2",
+          "text": "Então você troca a corda por vários cabos de aço, e cada um sozinho já aguentaria a cabine cheia."
+        },
+        {
+          "id": "k3",
+          "text": "Esses são os cabos de tração.",
+          "hl": "cabos de tração",
+          "pad": 0.2
+        }
       ]
     },
     {
       "id": "freio",
       "lines": [
-        { "id": "f1", "text": "Mas quando acaba a luz, o motor desliga, e o lado mais pesado desce sozinho.", "pad": 0.5 },
-        { "id": "f2", "text": "Então você põe no motor um freio de mola, que fica sempre apertado, e só abre quando tem energia." },
-        { "id": "f3", "text": "Esse é o freio. É por isso que, sem luz, o elevador para onde está, em vez de cair.", "hl": "freio" }
+        {
+          "id": "f1",
+          "text": "Mas quando acaba a luz, o motor desliga, e o lado mais pesado desce sozinho.",
+          "pad": 0.5
+        },
+        {
+          "id": "f2",
+          "text": "Então você põe no motor um freio de mola, que fica sempre apertado, e só abre quando tem energia."
+        },
+        {
+          "id": "f3",
+          "text": "Esse é o freio. É por isso que, sem luz, o elevador para onde está, em vez de cair.",
+          "hl": "freio"
+        }
       ]
     },
     {
       "id": "seguranca",
       "lines": [
-        { "id": "s1", "text": "Mas e se, mesmo assim, todos os cabos se soltarem lá em cima?", "pad": 0.5 },
-        { "id": "s2", "text": "Então você coloca no alto uma roda que gira junto com a cabine. Se ela desce rápido demais, a roda trava," },
-        { "id": "s3", "text": "e puxa duas garras que agarram os trilhos e seguram tudo.", "pad": 0.3 },
-        { "id": "s4", "text": "Esse é o freio de segurança. Foi com ele que Elisha Otis, em 1854, mandou cortar a corda da plataforma em que ele mesmo estava.", "say": "Esse é o freio de segurança. Foi com ele que Elisha Ótis, em mil oitocentos e cinquenta e quatro, mandou cortar a corda da plataforma em que ele mesmo estava.", "hl": "freio de segurança" }
+        {
+          "id": "s1",
+          "text": "Mas e se, mesmo assim, todos os cabos se soltarem lá em cima?",
+          "pad": 0.5
+        },
+        {
+          "id": "s2",
+          "text": "Então você coloca no alto uma roda que gira junto com a cabine. Se ela desce rápido demais, a roda trava,"
+        },
+        {
+          "id": "s3",
+          "text": "e puxa duas garras que agarram os trilhos e seguram tudo.",
+          "pad": 0.3
+        },
+        {
+          "id": "s4",
+          "text": "Esse é o freio de segurança. Foi com ele que Elisha Otis, em 1854, mandou cortar a corda da plataforma em que ele mesmo estava.",
+          "say": "Esse é o freio de segurança. Foi com ele que Elisha Ótis, em mil oitocentos e cinquenta e quatro, mandou cortar a corda da plataforma em que ele mesmo estava.",
+          "hl": "freio de segurança"
+        }
       ]
     },
     {
       "id": "porta",
       "lines": [
-        { "id": "p1", "text": "Mas alguém abre a porta do andar com o elevador lá em cima, e quase pisa no vazio.", "pad": 0.6 },
-        { "id": "p2", "text": "Então você põe em cada porta uma trava, que só solta quando a própria cabine chega e destrava." },
-        { "id": "p3", "text": "Essa é a trava da porta. É por isso que a porta do andar só abre quando o elevador está ali.", "hl": "trava da porta" }
+        {
+          "id": "p1",
+          "text": "Mas alguém abre a porta do andar com o elevador lá em cima, e quase pisa no vazio.",
+          "pad": 0.6
+        },
+        {
+          "id": "p2",
+          "text": "Então você põe em cada porta uma trava, que só solta quando a própria cabine chega e destrava."
+        },
+        {
+          "id": "p3",
+          "text": "Essa é a trava da porta. É por isso que a porta do andar só abre quando o elevador está ali.",
+          "hl": "trava da porta"
+        }
       ]
     },
     {
       "id": "sensor",
       "lines": [
-        { "id": "r1", "text": "Mas a porta fecha em cima de quem está entrando.", "pad": 0.7 },
-        { "id": "r2", "text": "Então você coloca na beira da porta uma cortina de luz invisível. Se alguma coisa corta a luz, a porta volta." },
-        { "id": "r3", "text": "É por isso que, quando você põe a mão na frente, a porta abre de novo.", "hl": "cortina de luz" }
+        {
+          "id": "r1",
+          "text": "Mas a porta fecha em cima de quem está entrando.",
+          "pad": 0.7
+        },
+        {
+          "id": "r2",
+          "text": "Então você coloca na beira da porta uma cortina de luz invisível. Se alguma coisa corta a luz, a porta volta."
+        },
+        {
+          "id": "r3",
+          "text": "É por isso que, quando você põe a mão na frente, a porta abre de novo.",
+          "hl": "cortina de luz"
+        }
       ]
     },
     {
       "id": "final",
       "lines": [
-        { "id": "e1", "text": "Coloque os botões, um painel, um espelho e uma musiquinha." },
-        { "id": "e2", "text": "Agora é só apertar o botão e subir.", "pad": 0.4 },
-        { "id": "e3", "text": "Obra entregue: você construiu um elevador.", "hl": "Obra entregue", "pad": 0.4 },
-        { "id": "e4", "text": "Comenta aqui qual obra eu construo no próximo vídeo.", "pad": 1.2 }
+        {
+          "id": "e1",
+          "text": "Coloque os botões, um painel, um espelho e uma musiquinha."
+        },
+        {
+          "id": "e2",
+          "text": "Agora é só apertar o botão e subir.",
+          "pad": 0.4
+        },
+        {
+          "id": "e3",
+          "text": "Obra entregue: você construiu um elevador.",
+          "hl": "Obra entregue",
+          "pad": 0.4
+        },
+        {
+          "id": "e4",
+          "text": "Comenta aqui qual obra eu construo no próximo vídeo.",
+          "pad": 1.2
+        }
       ]
     }
   ]

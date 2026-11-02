@@ -1,6 +1,6 @@
 """Mixa narração + efeitos sonoros + trilha e junta com o vídeo.
 
-Os efeitos e a trilha são sintetizados aqui (sem arquivos de terceiros),
+Os efeitos (aqui) e a trilha (music.py) são sintetizados (sem arquivos de terceiros),
 então não há problema de direitos autorais.
 Entrada: build/timeline.json, build/sfx.json, build/tts/*.wav, build/video_mudo.mp4
 Saída:   build/audio.wav e elevador.mp4
@@ -11,6 +11,8 @@ import wave
 from pathlib import Path
 
 import numpy as np
+
+from music import track
 
 ROOT = Path(__file__).resolve().parent
 BUILD = ROOT / "build"
@@ -244,34 +246,6 @@ def read_wav(p):
         return np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768
 
 
-def music(total):
-    """trilha leve: arpejo em Dó (C–G–Am–F) a 104 bpm + baixo + chimbal"""
-    bpm = 104
-    beat = 60 / bpm
-    chords = [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]]
-    out = np.zeros(round(SR * total) + SR)
-    hz = lambda m: 440 * 2 ** ((m - 69) / 12)
-    step = beat / 2
-    n = int(total / step) + 1
-    for i in range(n):
-        bar = int(i * step / (beat * 4)) % 4
-        ch = chords[bar]
-        s = round(SR * i * step)
-        note = ch[[0, 1, 2, 1][i % 4]] + 12
-        d = 0.35
-        t = tt(d)
-        pl = (2 * np.abs(2 * ((hz(note) * t) % 1) - 1) - 1) * np.exp(-t * 9) * 0.25
-        out[s : s + len(pl)] += pl[: len(out) - s]
-        if i % 2 == 0:
-            hh = (noise(0.03) - lp(noise(0.03), 0.5)) * np.linspace(1, 0, round(SR * 0.03)) * 0.06
-            out[s : s + len(hh)] += hh[: len(out) - s]
-        if i % 4 == 0:
-            tb = tt(beat * 1.8)
-            b = np.sin(2 * np.pi * hz(ch[0] - 24) * tb) * np.exp(-tb * 2) * 0.35
-            out[s : s + len(b)] += b[: len(out) - s]
-    return out[: round(SR * total)]
-
-
 def main():
     tl = json.loads((BUILD / "timeline.json").read_text(encoding="utf-8"))
     ev = json.loads((BUILD / "sfx.json").read_text(encoding="utf-8"))
@@ -288,21 +262,23 @@ def main():
         if s >= N:
             continue
         fx[s : s + len(x)] += x[: N - s]
-    mus = music(total)
-    mus = np.pad(mus, (0, N - len(mus)))
-    # abaixa a trilha enquanto alguém fala
     talk = np.zeros(N)
     for l in tl["lines"]:
-        talk[round(SR * l["start"]) : round(SR * l["end"])] = 1
-    k = round(SR * 0.25)
+        talk[int(SR * l["start"]) : int(SR * l["end"])] = 1
+    k = int(SR * 0.3)
     talk = np.convolve(talk, np.ones(k) / k, mode="same")
-    mus *= 0.55 - 0.3 * talk
-    fade = np.ones(N); nf = round(SR * 1.5); fade[round(SR * total) - nf : round(SR * total)] = np.linspace(1, 0, nf); fade[round(SR * total):] = 0
-    mix = (voice * 1.0 + fx * 0.32 + mus * 0.22) * fade
-    mix = mix[: round(SR * total)]
+    stamp = [e["t"] for e in ev if e["name"] == "stamp"]
+    mus = track(total, hits=stamp)
+    mus = np.pad(mus, ((0, N - len(mus)), (0, 0)))
+    mus *= (1.0 - 0.5 * talk)[:, None]          # trilha abaixa quando alguém fala
+    fade = np.ones(N); nf = int(SR * 2.0); end = int(SR * total)
+    fade[end - nf:end] = np.linspace(1, 0, nf); fade[end:] = 0
+    mono = voice * 1.0 + fx * 0.3
+    mix = (mono[:, None] + mus * 0.3) * fade[:, None]
+    mix = mix[:end]
     mix /= max(1e-6, np.abs(mix).max()) / 0.95
     with wave.open(str(BUILD / "audio.wav"), "wb") as w:
-        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+        w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes((mix * 32767).astype(np.int16).tobytes())
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(BUILD / "video_mudo.mp4"), "-i", str(BUILD / "audio.wav"),
                     "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
