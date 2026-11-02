@@ -2,3 +2,4 @@ node_modules/
 build/
 voices/
 *.mp4
+__pycache__/
