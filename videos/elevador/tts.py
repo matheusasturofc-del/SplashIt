@@ -26,6 +26,19 @@ def duration(path: Path) -> float:
         return w.getnframes() / w.getframerate()
 
 
+def tighten(out: Path, words):
+    """corta sobras depois da última palavra (o Chatterbox às vezes deixa respiração ou ruído)"""
+    if not words:
+        return
+    end = words[-1]["e"] + 0.3
+    if duration(out) <= end + 0.15:
+        return
+    tmp = out.with_suffix(".tmp.wav")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out), "-t", f"{end:.3f}",
+                    "-af", f"afade=t=out:st={end - 0.12:.3f}:d=0.12", str(tmp)], check=True)
+    tmp.replace(out)
+
+
 def stamp(line, engine):
     return json.dumps([engine, line.get("say", line["text"])], ensure_ascii=False)
 
@@ -82,6 +95,8 @@ def main():
             d = duration(out)
             wj = Path(str(out) + ".words.json")
             words = json.loads(wj.read_text(encoding="utf-8"))["words"] if wj.exists() and engine == "chatterbox" else []
+            tighten(out, words)
+            d = duration(out)
             lines.append({
                 "id": line["id"], "beat": beat["id"], "beatIndex": bi,
                 "text": line["text"], "say": line.get("say", line["text"]), "hl": line.get("hl"),

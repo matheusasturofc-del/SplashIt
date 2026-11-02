@@ -8,7 +8,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const W = 1080, H = 1920;
 const out = document.getElementById('c');
-const ctx = out.getContext('2d');
+const ctx = out.getContext('2d', { willReadFrequently: true });
 
 // ================================================================ matemática
 const cl = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
@@ -412,6 +412,9 @@ const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.35;
+// reflexos de ambiente dobram o tempo de render sem GPU; só liga com ?env=1
+const ENV = Q.get('env') === '1';
+if (!ENV) scene.environment = null;
 const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 400);
 
 function gradientTex(stops, h = 512) {
@@ -426,17 +429,19 @@ scene.background = gradientTex([[0, '#5aa9f0'], [0.55, '#a9d8ff'], [1, '#e8f6ff'
 const hemi = new THREE.HemisphereLight('#dff0ff', '#9c7a55', 1.35); scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff4e0', 3.0);
 sun.position.set(9, 22, 16); sun.target.position.set(0, 6, 0);
-sun.castShadow = true; sun.shadow.mapSize.setScalar(+(Q.get('sh') || 2048));
+sun.castShadow = Q.get('shadow') !== '0'; sun.shadow.mapSize.setScalar(+(Q.get('sh') || 2048));
 Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 17, bottom: -5, near: 1, far: 70 });
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 const fill = new THREE.DirectionalLight('#bcd4ff', 0.9); fill.position.set(-12, 8, 10); scene.add(fill);
-const cabLight = new THREE.PointLight('#fff1cf', 6, 4.5, 1.6); scene.add(cabLight);
+const cabLight = new THREE.PointLight('#fff1cf', 6, 4.5, 1.6); if (Q.get('pl') !== '0') scene.add(cabLight);
 
 const MATS = {};
 function M(col, o = {}) {
   const k = col + JSON.stringify(o);
-  return (MATS[k] ??= new THREE.MeshStandardMaterial({ color: col, roughness: 0.62, metalness: 0.02, ...o }));
+  const m = { color: col, roughness: 0.62, metalness: 0.02, ...o };
+  if (!ENV) m.metalness = Math.min(m.metalness, 0.25);
+  return (MATS[k] ??= new THREE.MeshStandardMaterial(m));
 }
 const GEO = { box: new THREE.BoxGeometry(1, 1, 1), sph: new THREE.SphereGeometry(1, 28, 18), cyl: new THREE.CylinderGeometry(1, 1, 1, 24) };
 function mesh(geo, mat, shadow = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; return m; }
@@ -822,6 +827,7 @@ function buildParticles() {
 const HV = { w: 380, h: 340 };
 const hostScene = new THREE.Scene();
 hostScene.environment = scene.environment; hostScene.environmentIntensity = 0.4;
+if (!ENV) hostScene.add(new THREE.AmbientLight('#ffffff', 0.5));
 const hostCam = new THREE.PerspectiveCamera(30, HV.w / HV.h, 0.1, 50);
 hostCam.position.set(0, 1.25, 5.4); hostCam.lookAt(0, 1.05, 0);
 hostScene.add(new THREE.HemisphereLight('#ffffff', '#8a7a6a', 1.6));
@@ -936,7 +942,7 @@ function updateHost(t) {
 function updateWorld(t) {
   applyAsm(t);
   const dk = dark(t);
-  hemi.intensity = lerp(1.35, 0.25, dk); sun.intensity = lerp(3.0, 0.15, dk); fill.intensity = lerp(0.9, 0.2, dk);
+  hemi.intensity = lerp(ENV ? 1.35 : 1.75, 0.25, dk); sun.intensity = lerp(3.0, 0.15, dk); fill.intensity = lerp(ENV ? 0.9 : 1.3, 0.2, dk);
   scene.environmentIntensity = lerp(0.35, 0.05, dk);
   for (const l of LAMPS) l.material.emissiveIntensity = lerp(1.2, 0, dk);
   for (const c of CLOUDS) c.position.x = -45 + ((c.userData.x0 + 45 + t * c.userData.speed) % 95);
@@ -1434,25 +1440,44 @@ function setup(tl) {
   buildGovernor(); buildLatch(); buildCurtain(); buildRopes(); buildVisitor(); buildParticles();
   buildHost();
 }
+const PIX = new Uint8Array(GW * GH * 4), FLIP = new Uint8ClampedArray(GW * GH * 4), IMG = new ImageData(FLIP, GW, GH);
+const TMP = document.createElement('canvas'); TMP.width = GW; TMP.height = GH;
+const TCTX = TMP.getContext('2d', { willReadFrequently: true });
+const PROF = {};
+const tick = (k, t0) => { PROF[k] = (PROF[k] || 0) + performance.now() - t0; return performance.now(); };
 function draw(t) {
+  let t0 = performance.now();
   updateWorld(t);
   updateCamera(t);
   updateHost(t);
+  t0 = tick('update', t0);
   renderer.setScissorTest(false);
   renderer.setViewport(0, 0, GW, GH);
   renderer.autoClear = true;
   renderer.render(scene, camera);
+  renderer.getContext().finish();
+  t0 = tick('scene', t0);
   renderer.autoClear = false;
   renderer.clearDepth();
   renderer.setViewport(0, 0, HV.w * RS, HV.h * RS);
   renderer.setScissor(0, 0, HV.w * RS, HV.h * RS); renderer.setScissorTest(true);
   renderer.render(hostScene, hostCam);
   renderer.setScissorTest(false);
+  renderer.getContext().finish();
+  t0 = tick('host', t0);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
   ctx.filter = (t >= C.s1frz && t < C.s1rwS) ? 'grayscale(0.85) contrast(1.05)' : 'none';
+  // copiar via readPixels é muito mais rápido que drawImage(canvas WebGL) sem GPU
+  const gl = renderer.getContext();
+  if (Q.get("tiny")) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PIX); else gl.readPixels(0, 0, GW, GH, gl.RGBA, gl.UNSIGNED_BYTE, PIX);
+  const row = GW * 4;
+  for (let y = 0; y < GH; y++) FLIP.set(PIX.subarray((GH - 1 - y) * row, (GH - y) * row), y * row);
+  TCTX.putImageData(IMG, 0, 0);
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(glc, 0, 0, W, H);
+  ctx.drawImage(TMP, 0, 0, W, H);
   ctx.filter = 'none';
+  ctx.getImageData(0, 0, 1, 1);
+  t0 = tick('drawImage', t0);
   const dk = dark(t);
   if (dk > 0) { ctx.fillStyle = `rgba(12,18,45,${0.35 * dk})`; ctx.fillRect(0, 0, W, H - HV.h); }
   drawLabels(t);
@@ -1462,6 +1487,9 @@ function draw(t) {
   drawCaption(t);
   drawChips(t);
   drawBubble(t);
+  ctx.getImageData(0, 0, 1, 1);
+  tick('2d', t0);
 }
 window.setup = setup; window.draw = draw; window.sfxEvents = () => SFX;
+window.prof = () => PROF;
 window.sceneReady = true;
