@@ -57,7 +57,7 @@ const DOORX = -1.8;
 // ================================================================ linha do tempo
 let TL = null;
 const LN = {}, C = {};
-const SFX = [], CAPS = [], LABELS = [], REACT = [], CHIPS = [];
+const SFX = [], CAPS = [], LABELS = [], REACT = [], CHIPS = [], ARROWS = [];
 const S = id => LN[id].start, E = id => LN[id].end;
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').trim().split(/\s+/).filter(Boolean);
 const fuzzy = (tok, target) => tok === target || (target.length >= 4 && tok.startsWith(target.slice(0, 4)));
@@ -188,7 +188,7 @@ function computeCues() {
   CK.push([C.brk0 - 0.6, [0.8, 9, 0, 20, 0.2, 0.1, 38]], [C.brk0, [BRK.x - 0.3, 13.25, 0, 4.2, 0.45, 0.18, 42]],
     [C.off2 + 0.35, [BRK.x - 0.3, 13.25, 0, 3.8, -0.35, 0.12, 42]], [C.off2 + 1.1, [0, 7.2, 0, 24, 0.3, 0.1, 38]]);
   CK.push([S('s1') + 0.6, [0, 7.0, 0, 21, 0.4, 0.08, 38]], [S('s2') + 0.1, [0, 7.0, 0, 21, 0.2, 0.08, 38]],
-    [S('s2') + 0.8, [GOV.x, 12.9, GOV.z, 4.6, -0.55, 0.2, 42]], [C.d2 - 0.4, [GOV.x, 12.9, GOV.z, 4.4, -0.35, 0.15, 42]],
+    [S('s2') + 0.8, [GOV.x, 12.9, GOV.z, 4.6, -0.2, 0.2, 42]], [C.d2 - 0.4, [GOV.x, 12.9, GOV.z, 4.4, 0.1, 0.15, 42]],
     [C.d2 + 0.3, [CABX, 9.6, 0, 10, -0.2, 0.1, 40]]);
   const cabStop = cabBottomRaw(3.5, C.gDrop + 0.1);
   CK.push([C.stop - 0.7, [CABX, cabStop + 0.3, 0, 6.5, -0.65, -0.05, 42]], [S('s4') + 0.4, [CABX, cabStop + 0.3, 0, 6.3, 0.1, 0.02, 42]],
@@ -257,6 +257,53 @@ function computeCues() {
   Lb('FREIO DE SEGURANÇA', wT('s4', 'freio'), E('s4') + 0.2, t => V(RAILS[0] + 0.1, cabBottom(t) + 0.05, 0.3), [190, 230]);
   Lb('TRAVA DA PORTA', wT('p3', 'trava'), E('p3') + 0.3, () => V(-1.98, DOORF * FH + 2.25, 0), [60, -230]);
   Lb('CORTINA DE LUZ', S('r3') + 0.2, E('r3') + 0.4, () => V(-1.8, DOORF * FH + 1.3, 0), [80, -380]);
+
+  // ---------- setas (movimento e força), ancoradas no 3D
+  const Ar = (t0, t1, at, dir, len, col, kind = 'line') => ARROWS.push({ t0, t1, at, dir: new THREE.Vector3(...dir), len, col, kind });
+  const UP = [0, 1, 0], DN = [0, -1, 0];
+  const GREEN = '#2ecc71', RED = '#ff4d3d', BLUE = '#4d9bff', YEL = '#ffd23f', ORA = '#ff9f1c';
+  const cabSide = t => V(CABX - 1.4, cabBottom(t) + 1.0, 0.7);
+  const cwSide = t => V(CWX + 0.6, cwBottomAt(t) + CWH / 2, 0.4);
+  // gancho: motor puxando tudo sozinho
+  Ar(C.lift0, C.burn, () => V(DRUM.x - 0.4, DRUM.y - 1.4, 0.4), UP, 1.0, RED);
+  // contrapeso: um sobe, o outro desce
+  for (const [a0, a1] of [[S('c3') + 0.4, E('c3') + 0.2], [C.c5a, C.c5b]]) {
+    Ar(a0, a1, cabSide, UP, 1.3, GREEN);
+    Ar(a0, a1, cwSide, DN, 1.3, BLUE);
+  }
+  // cabine balançando para os lados
+  Ar(C.sw0 + 0.3, C.sw1, t => V(CABX, cabBottom(t) + CABH + 0.55, 0.6), [1, 0, 0], 0.9, ORA);
+  Ar(C.sw0 + 0.3, C.sw1, t => V(CABX, cabBottom(t) + CABH + 0.55, 0.6), [-1, 0, 0], 0.9, ORA);
+  // queda
+  Ar(C.snap + 0.05, C.land, t => V(CABX, cabBottom(t) + CABH + 0.6, 0.6), DN, 1.8, RED);
+  Ar(C.drift0 + 0.2, C.drift1, cabSide, DN, 1.3, RED);
+  Ar(C.up0, C.up0 + 1.1, cabSide, UP, 1.3, GREEN);
+  // freio: molas apertam, energia abre, sem luz aperta de novo
+  const shoeAt = s => () => V(BRK.x + s * 0.75, BRK.y, 0.3);
+  for (const s of [-1, 1]) {
+    Ar(wT('f2', 'apertado') - 0.2, C.brkE, shoeAt(s), [-s, 0, 0], 0.35, RED);
+    Ar(C.brkE + 0.05, C.brkE + 1.4, () => V(BRK.x + s * 0.38, BRK.y, 0.3), [s, 0, 0], 0.35, YEL);
+    Ar(C.clac, C.clac + 1.0, shoeAt(s), [-s, 0, 0], 0.35, RED);
+  }
+  // limitador girando junto com a cabine
+  Ar(C.g0, C.g0 + 1.4, () => V(GOV.x, GOV.y, GOV.z), [0, 0, 1], 0, YEL, 'spin');
+  Ar(C.d2, C.lock, () => V(GOV.x, GOV.y, GOV.z), [0, 0, 1], 0, RED, 'spin');
+  Ar(C.d2, C.stop, cabSide, DN, 1.3, RED);
+  // garras subindo e agarrando os trilhos
+  Ar(C.jaw - 0.05, C.stop + 0.9, t => V(RAILS[0] - 0.1, cabBottom(t) - 0.55, 0.3), UP, 0.45, YEL);
+  Ar(C.jaw - 0.05, C.stop + 0.9, t => V(RAILS[1] + 0.1, cabBottom(t) - 0.55, 0.3), UP, 0.45, YEL);
+  // cabine chegando e a rampa empurrando a trava
+  Ar(C.arr0 + 0.2, C.arr1 + 0.3, () => V(-2.0, DOORF * FH + 2.95, -0.33), DN, 0.35, BLUE);
+  // portas voltando quando a luz é cortada
+  for (const h of [C.h1, C.h2]) {
+    Ar(h + 0.05, h + 0.7, () => V(-1.95, DOORF * FH + 0.6, -0.35), [0, 0, -1], 0.4, GREEN);
+    Ar(h + 0.05, h + 0.7, () => V(-1.95, DOORF * FH + 0.6, 0.35), [0, 0, 1], 0.4, GREEN);
+  }
+  // portas fechando em cima da pessoa
+  Ar(C.cl0, C.slam, () => V(-1.95, DOORF * FH + 0.6, -0.8), [0, 0, 1], 0.4, RED);
+  Ar(C.cl0, C.slam, () => V(-1.95, DOORF * FH + 0.6, 0.8), [0, 0, -1], 0.4, RED);
+  // subida final
+  Ar(C.ride0, C.ride1, t => V(CABX + 0.2, cabBottom(t) + CABH + 0.55, 0.6), UP, 1.0, GREEN);
 
   for (let i = 0; i <= NF; i++) sfx(0.25 + i * 0.28, 'whoosh', 0.35), sfx(0.55 + i * 0.28, 'thud', 0.45);
   sfx(C.cab0 + 0.25, 'clank', 0.7);
@@ -1168,6 +1215,46 @@ function bigWord(txt, x, y, size, col) {
   ctx.lineJoin = 'round'; ctx.strokeStyle = '#141824'; ctx.lineWidth = size * 0.22;
   ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
+function arrow2d(x0, y0, x1, y1, col, w = 15) {
+  const L = Math.hypot(x1 - x0, y1 - y0); if (L < 6) return;
+  const ux = (x1 - x0) / L, uy = (y1 - y0) / L, nx = -uy, ny = ux;
+  const hl = Math.min(L * 0.55, w * 2.6), hw = w * 1.6;
+  const bx = x1 - ux * hl, by = y1 - uy * hl;
+  const head = () => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(bx + nx * hw, by + ny * hw); ctx.lineTo(bx - nx * hw, by - ny * hw); ctx.closePath(); };
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#141824'; ctx.lineWidth = w + 9; line(x0, y0, bx, by);
+  head(); ctx.lineWidth = 9; ctx.stroke(); ctx.fillStyle = '#141824'; ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = w; line(x0, y0, bx + ux * 2, by + uy * 2);
+  head(); ctx.fillStyle = col; ctx.fill();
+}
+const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+function drawArrows(t) {
+  for (const A of ARROWS) {
+    if (t < A.t0 || t > A.t1 + 0.25) continue;
+    const pin = EZ.back(P(t, A.t0, 0.35)), pout = P(t, A.t1, 0.25);
+    ctx.save(); ctx.globalAlpha *= cl(1 - pout) * cl(P(t, A.t0, 0.12));
+    if (A.kind === 'spin') {
+      const [cx, cy, cz] = project(A.at(t)); if (cz > 1) { ctx.restore(); continue; }
+      const r = 70 * Math.max(0.3, pin), a0 = (t - A.t0) * 5, a1 = a0 + 1.5 * Math.PI;
+      ctx.lineCap = 'round';
+      for (const [col, w] of [['#141824', 22], [A.col, 13]]) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1); ctx.stroke(); }
+      const ex = cx + Math.cos(a1) * r, ey = cy + Math.sin(a1) * r;
+      arrow2d(ex, ey, ex - Math.sin(a1) * 34, ey + Math.cos(a1) * 34, A.col, 13);
+      ctx.restore(); continue;
+    }
+    const bob = 0.15 * A.len * Math.sin((t - A.t0) * 9);
+    _a.copy(A.at(t)).addScaledVector(A.dir, bob);
+    _b.copy(_a).addScaledVector(A.dir, A.len);
+    let [x0, y0, z0] = project(_a); const [x1, y1] = project(_b);
+    if (z0 > 1) { ctx.restore(); continue; }
+    let dx = x1 - x0, dy = y1 - y0; const L = Math.hypot(dx, dy);
+    if (L < 1) { ctx.restore(); continue; }
+    const Lm = Math.min(Math.max(L, 125), 240);  // sempre legível na tela
+    dx *= Lm / L; dy *= Lm / L;
+    arrow2d(x0, y0, x0 + dx * pin, y0 + dy * pin, A.col, 19);
+    ctx.restore();
+  }
+}
 function drawLabels(t) {
   for (const L of LABELS) {
     if (t < L.t0 || t > L.t1 + 0.3) continue;
@@ -1478,6 +1565,7 @@ function draw(t) {
   t0 = tick('drawImage', t0);
   const dk = dark(t);
   if (dk > 0) { ctx.fillStyle = `rgba(12,18,45,${0.35 * dk})`; ctx.fillRect(0, 0, W, H - HV.h); }
+  drawArrows(t);
   drawLabels(t);
   comic(t);
   overlays(t);
