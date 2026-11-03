@@ -1,0 +1,103 @@
+{
+  "title": "PC Gamer",
+  "header": ["COMO CONSTRUIR UM ", "PC GAMER"],
+  "engine": "chatterbox",
+  "chatterbox": {
+    "ref": "ref_faber.wav",
+    "exaggeration": 0.6,
+    "cfg": 0.3
+  },
+  "voicePitch": 1.0,
+  "voice": "pt_BR-faber-medium",
+  "lengthScale": 0.97,
+  "gapLine": 0.1,
+  "gapBeat": 0.3,
+  "beats": [
+    {
+      "id": "hook",
+      "lines": [
+        { "id": "h1", "text": "Se você ligar um processador direto na tomada,", "pad": 0.2 },
+        { "id": "h2", "text": "você não vai ter um PC gamer. Vai ter um quadradinho de silício torrado.", "say": "você não vai ter um pecê gêimer. Vai ter um quadradinho de silício torrado.", "pad": 1.4 }
+      ]
+    },
+    {
+      "id": "placa",
+      "lines": [
+        { "id": "m1", "text": "Então você encaixa ele numa placa onde todas as peças se conectam e conversam entre si." },
+        { "id": "m2", "text": "Essa é a placa-mãe. É por isso que todo PC tem aquela placa grandona, cheia de encaixes.", "say": "Essa é a placa-mãe. É por isso que todo pecê tem aquela placa grandona, cheia de encaixes.", "hl": "placa-mãe" }
+      ]
+    },
+    {
+      "id": "fonte",
+      "lines": [
+        { "id": "f1", "text": "Mas a tomada dá 127 volts, e o processador aguenta pouco mais de 1 volt.", "say": "Mas a tomada dá cento e vinte e sete volts, e o processador aguenta pouco mais de um volt.", "pad": 1.4 },
+        { "id": "f2", "text": "Então você coloca uma caixa que transforma a energia da tomada em 12 volts, e a placa-mãe abaixa o resto.", "say": "Então você coloca uma caixa que transforma a energia da tomada em doze volts, e a placa-mãe abaixa o resto." },
+        { "id": "f3", "text": "Essa é a fonte. É por isso que ela tem aquele cabo grosso e um ventilador só dela.", "hl": "fonte" }
+      ]
+    },
+    {
+      "id": "cooler",
+      "lines": [
+        { "id": "c1", "text": "Mas em poucos segundos o processador passa de 100 graus, e o PC desliga sozinho.", "say": "Mas em poucos segundos o processador passa de cem graus, e o pecê desliga sozinho.", "pad": 1.4 },
+        { "id": "c2", "text": "Então você coloca em cima dele um bloco de metal cheio de aletas, com uma ventoinha soprando." },
+        { "id": "c3", "text": "Esse é o cooler.", "say": "Esse é o cúler.", "hl": "cooler", "pad": 0.3 }
+      ]
+    },
+    {
+      "id": "pasta",
+      "lines": [
+        { "id": "t1", "text": "Mas o cooler não encosta direito. Fica uma camadinha de ar no meio, e o ar segura o calor.", "say": "Mas o cúler não encosta direito. Fica uma camadinha de ar no meio, e o ar segura o calor.", "pad": 1.4 },
+        { "id": "t2", "text": "Então você passa uma pasta que preenche os buraquinhos e leva o calor para o metal." },
+        { "id": "t3", "text": "Essa é a pasta térmica. É por isso que quem monta PC passa aquela pastinha cinza.", "say": "Essa é a pasta térmica. É por isso que quem monta pecê passa aquela pastinha cinza.", "hl": "pasta térmica" }
+      ]
+    },
+    {
+      "id": "ssd",
+      "lines": [
+        { "id": "s1", "text": "Agora, o jogo precisa ficar guardado em algum lugar, mesmo com o PC desligado.", "say": "Agora, o jogo precisa ficar guardado em algum lugar, mesmo com o pecê desligado." },
+        { "id": "s2", "text": "Esse é o SSD.", "say": "Esse é o esse esse dê.", "hl": "SSD", "pad": 0.3 }
+      ]
+    },
+    {
+      "id": "ram",
+      "lines": [
+        { "id": "r1", "text": "Mas o processador é tão rápido, que fica parado esperando o SSD entregar os dados.", "say": "Mas o processador é tão rápido, que fica parado esperando o esse esse dê entregar os dados.", "pad": 1.4 },
+        { "id": "r2", "text": "Então você coloca, pertinho dele, uma memória muito mais rápida, só para o que está sendo usado agora." },
+        { "id": "r3", "text": "Essa é a memória RAM. É por isso que, quando acaba a luz, você perde o que não salvou.", "hl": "memória RAM" }
+      ]
+    },
+    {
+      "id": "gpu",
+      "lines": [
+        { "id": "g1", "text": "Mas o jogo roda a 8 quadros por segundo, porque o processador desenha a imagem praticamente sozinho.", "say": "Mas o jogo roda a oito quadros por segundo, porque o processador desenha a imagem praticamente sozinho.", "pad": 1.4 },
+        { "id": "g2", "text": "Então você coloca uma placa com milhares de núcleos pequenos, que desenham a imagem toda ao mesmo tempo." },
+        { "id": "g3", "text": "Essa é a placa de vídeo. É por isso que ela é a peça mais cara do PC gamer.", "say": "Essa é a placa de vídeo. É por isso que ela é a peça mais cara do pecê gêimer.", "hl": "placa de vídeo" }
+      ]
+    },
+    {
+      "id": "energia",
+      "lines": [
+        { "id": "p1", "text": "Mas no meio da partida, o PC desliga do nada.", "say": "Mas no meio da partida, o pecê desliga do nada.", "pad": 1.4 },
+        { "id": "p2", "text": "A placa de vídeo puxa mais energia do que a fonte aguenta. Então você troca por uma fonte mais forte." },
+        { "id": "p3", "text": "É por isso que a fonte tem os watts escritos nela.", "say": "É por isso que a fonte tem os uóts escritos nela.", "hl": "watts" }
+      ]
+    },
+    {
+      "id": "ar",
+      "lines": [
+        { "id": "a1", "text": "Mas tudo isso dentro de uma caixa fechada vira um forno.", "pad": 1.4 },
+        { "id": "a2", "text": "Então você coloca ventoinhas puxando ar frio pela frente e jogando o ar quente por trás." },
+        { "id": "a3", "text": "Esse é o fluxo de ar. É por isso que o gabinete tem grades e ventoinhas na frente.", "hl": "fluxo de ar" }
+      ]
+    },
+    {
+      "id": "final",
+      "lines": [
+        { "id": "e1", "text": "Coloque o teclado, o mouse, o fone e as luzinhas coloridas, que deixam o PC 30% mais rápido. Brincadeira.", "say": "Coloque o teclado, o mouse, o fone e as luzinhas coloridas, que deixam o pecê trinta por cento mais rápido. Brincadeira." },
+        { "id": "e2", "text": "Agora é só apertar o play.", "say": "Agora é só apertar o plei.", "pad": 0.4 },
+        { "id": "e3", "text": "Obra entregue: você construiu um PC gamer.", "say": "Obra entregue: você construiu um pecê gêimer.", "hl": "Obra entregue", "pad": 0.4 },
+        { "id": "e4", "text": "Comenta aqui qual obra eu construo no próximo vídeo.", "pad": 1.2 }
+      ]
+    }
+  ]
+}

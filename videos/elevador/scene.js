@@ -866,7 +866,8 @@ function buildParticles() {
 }
 
 // ================================================================ mestre de obras 3D (cena separada, canto inferior esquerdo)
-const HV = { w: 380, h: 340 };
+const HVS = +(new URLSearchParams(location.search).get('hv') || 1);
+const HV = { w: 380 * HVS, h: 340 * HVS };
 const hostScene = new THREE.Scene();
 hostScene.environment = scene.environment; hostScene.environmentIntensity = 0.4;
 if (!ENV) hostScene.add(new THREE.AmbientLight('#ffffff', 0.5));
@@ -1628,14 +1629,16 @@ function draw(t) {
   t0 = tick('drawImage', t0);
   const dk = dark(wt);
   if (dk > 0) { ctx.fillStyle = `rgba(12,18,45,${0.35 * dk})`; ctx.fillRect(0, 0, W, H - HV.h); }
-  drawArrows(t);
-  drawLabels(t);
-  comic(t);
-  overlays(t);
-  drawHeader();
-  drawCaption(t);
-  drawChips(t);
-  drawBubble(t);
+  if (Q.get('clean') !== '1') {
+    drawArrows(t);
+    drawLabels(t);
+    comic(t);
+    overlays(t);
+    drawHeader();
+    drawCaption(t);
+    drawChips(t);
+    drawBubble(t);
+  }
   ctx.getImageData(0, 0, 1, 1);
   tick('2d', t0);
 }
