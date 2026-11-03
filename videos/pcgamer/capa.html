@@ -1,0 +1,58 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:F;src:url(node_modules/@fontsource/fredoka/files/fredoka-latin-700-normal.woff2);font-weight:700}
+html,body{margin:0;background:#000}
+</style></head><body>
+<canvas id="v" width="1080" height="1920"></canvas>
+<canvas id="h" width="1280" height="720"></canvas>
+<script>
+// Capas do vídeo: vertical (Shorts) e horizontal (vídeo normal)
+const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
+function stroked(g, txt, x, y, size, fill, stroke = '#10131a', lw = 0.2, align = 'center') {
+  g.font = `700 ${size}px F`; g.textAlign = align; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
+  g.strokeStyle = stroke; g.lineWidth = size * lw; g.strokeText(txt, x, y);
+  g.fillStyle = fill; g.fillText(txt, x, y);
+}
+function arrowDown(g, x, y0, y1, w) {
+  const hl = w * 2.2, hw = w * 1.7;
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  for (const [col, extra] of [['#10131a', 16], ['#ff3b30', 0]]) {
+    g.strokeStyle = col; g.lineWidth = w + extra; g.beginPath(); g.moveTo(x, y0); g.lineTo(x, y1 - hl); g.stroke();
+    g.fillStyle = col; g.beginPath(); g.moveTo(x - hw - extra / 2, y1 - hl); g.lineTo(x + hw + extra / 2, y1 - hl); g.lineTo(x, y1 + extra / 2); g.closePath(); g.fill();
+  }
+}
+function speedLines(g, x0, x1, y0, y1) {
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineCap = 'round';
+  for (let i = 0; i < 7; i++) { const x = x0 + (x1 - x0) * (i + 0.5) / 7; g.lineWidth = 6; g.beginPath(); g.moveTo(x, y0 - 30 - (i % 3) * 25); g.lineTo(x, y0 - 120 - (i % 2) * 40); g.stroke(); }
+}
+(async () => {
+  await document.fonts.load('700 100px F');
+  const bg = await load('capa_quadro.png'), logo = await load('build/logo.png');
+  // ---------- vertical 1080x1920
+  let g = document.getElementById('v').getContext('2d');
+  g.drawImage(bg, 0, 150, 1080, 1920);
+  g.fillStyle = '#5b62a8'; g.fillRect(0, 0, 1080, 150);
+  const top = g.createLinearGradient(0, 0, 0, 560); top.addColorStop(0, 'rgba(10,14,28,.92)'); top.addColorStop(1, 'rgba(10,14,28,0)');
+  g.fillStyle = top; g.fillRect(0, 0, 1080, 560);
+  stroked(g, 'O QUE TEM', 540, 150, 110, '#ffffff');
+  stroked(g, 'DENTRO DE UM', 540, 280, 110, '#ffffff');
+  stroked(g, 'PC GAMER?', 540, 450, 170, '#ffd23f');
+
+  arrowDown(g, 900, 520, 830, 40);
+  g.save(); g.beginPath(); g.arc(950, 1800, 95, 0, 7); g.closePath(); g.clip(); g.drawImage(logo, 855, 1705, 190, 190); g.restore();
+  g.strokeStyle = '#fff'; g.lineWidth = 8; g.beginPath(); g.arc(950, 1800, 95, 0, 7); g.stroke();
+  // ---------- horizontal 1280x720
+  g = document.getElementById('h').getContext('2d');
+  const hb = g.createLinearGradient(0, 0, 1280, 0); hb.addColorStop(0, '#121829'); hb.addColorStop(1, '#2b3a63');
+  g.fillStyle = hb; g.fillRect(0, 0, 1280, 720);
+  g.save(); g.beginPath(); g.moveTo(600, 0); g.lineTo(1280, 0); g.lineTo(1280, 720); g.lineTo(520, 720); g.closePath(); g.clip();
+  g.drawImage(bg, 0, 420, 1080, 1080, 560, 0, 720, 720);
+  g.restore();
+  g.strokeStyle = '#ffd23f'; g.lineWidth = 10; g.beginPath(); g.moveTo(600, 0); g.lineTo(520, 720); g.stroke();
+  stroked(g, 'O QUE TEM', 60, 190, 92, '#ffffff', '#10131a', 0.2, 'left');
+  stroked(g, 'DENTRO DE UM', 60, 310, 92, '#ffffff', '#10131a', 0.2, 'left');
+  stroked(g, 'PC GAMER?', 60, 470, 140, '#ffd23f', '#10131a', 0.2, 'left');
+  g.save(); g.beginPath(); g.arc(120, 610, 62, 0, 7); g.closePath(); g.clip(); g.drawImage(logo, 58, 548, 124, 124); g.restore();
+  stroked(g, 'OBRA ENTREGUE', 200, 630, 44, '#ffffff', '#10131a', 0.18, 'left');
+  window.done = true;
+})();
+</script></body></html>

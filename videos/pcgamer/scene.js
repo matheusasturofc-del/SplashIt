@@ -1437,14 +1437,16 @@ function draw(t) {
   heatOverlay(t, wt);
   drawGauges(t, wt);
   magnifier(t, wt);
-  drawArrows(t);
-  drawLabels(t);
-  comic(t, wt);
-  overlays(t);
-  drawHeader();
-  drawCaption(t);
-  drawChips(t);
-  drawBubble(t);
+  if (Q.get('clean') !== '1') {
+    drawArrows(t);
+    drawLabels(t);
+    comic(t, wt);
+    overlays(t);
+    drawHeader();
+    drawCaption(t);
+    drawChips(t);
+    drawBubble(t);
+  }
   ctx.getImageData(0, 0, 1, 1);
   tick('2d', t0);
 }
