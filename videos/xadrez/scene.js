@@ -540,7 +540,8 @@ function buildProps() {
 }
 
 // ================================================================ mestre de obras 3D (cena separada, canto inferior esquerdo)
-const HV = { w: 380, h: 340 };
+const HVS = +(new URLSearchParams(location.search).get('hv') || 1);
+const HV = { w: 380 * HVS, h: 340 * HVS };
 const hostScene = new THREE.Scene();
 hostScene.environment = scene.environment; hostScene.environmentIntensity = 0.4;
 if (!ENV) hostScene.add(new THREE.AmbientLight('#ffffff', 0.5));
