@@ -11,6 +11,7 @@ novo se a transcrição ficar muito diferente do texto) e salva os tempos de cad
 palavra em <out>.words.json.
 """
 import difflib
+import os
 import json
 import re
 import sys
@@ -48,8 +49,8 @@ def main():
     asr = WhisperModel("small", device="cpu", compute_type="int8")
     for line in job["lines"]:
         best = None
-        for attempt in range(3):
-            torch.manual_seed(1000 + attempt * 77 + sum(map(ord, line["id"])))
+        for attempt in range(int(os.environ.get("MAXTRY", "3"))):
+            torch.manual_seed(1000 + attempt * 77 + sum(map(ord, line["id"])) + int(os.environ.get("SEED", "0")))
             kw = dict(language_id="pt", exaggeration=job.get("exaggeration", 0.5), cfg_weight=job.get("cfg", 0.5))
             if job.get("ref"):
                 kw["audio_prompt_path"] = job["ref"]
@@ -64,7 +65,7 @@ def main():
             print(f"{line['id']} tentativa {attempt + 1}: {score:.2f} | {heard}", flush=True)
             if best is None or score > best[0]:
                 best = (score, w, words)
-            if score >= 0.85:
+            if score >= float(os.environ.get("MINSCORE", "0.85")):
                 break
         score, w, words = best
         w = w / max(1e-6, np.abs(w).max()) * 0.9
