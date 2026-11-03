@@ -158,7 +158,7 @@ function computeCues() {
   const ramW = CW(3.8, 3.55, 0.3), ssdW = CW(2.8, 1.71, 0.11);
   const CK = [];
   CK.push([0, [1.0, 2.6, -1.5, 34, -0.65, 0.38, 38]], [2.4, OV]);
-  CK.push([C.plug0 - 0.6, OV], [C.plug0 + 0.2, [DESKCPU.x, 0.4, DESKCPU.z, 4.2, 0.55, 0.35, 42]], [C.rwH.b, [DESKCPU.x, 0.4, DESKCPU.z, 3.8, 0.1, 0.3, 42]]);
+  CK.push([C.plug0 - 0.6, OV], [C.plug0 + 0.2, [DESKCPU.x, 0.3, DESKCPU.z, 3.4, 0.55, 0.4, 42]], [C.rwH.b, [DESKCPU.x, 0.3, DESKCPU.z, 3.1, 0.1, 0.36, 42]]);
   CK.push([C.mb0 + 0.2, [3.25, 2.7, -2.0, 11, 0.5, 0.12, 40]], [E('m2'), [3.25, 2.7, -2.0, 10, -0.15, 0.1, 40]]);
   CK.push([C.plug2 + 0.3, [5.2, 2.4, -3.0, 14, 0.35, 0.1, 40]], [C.rwF.b, [5.2, 2.4, -3.0, 13.5, 0.2, 0.1, 40]]);
   CK.push([C.psu0 + 0.2, [psuW.x, 0.9, psuW.z, 7, 0.5, 0.25, 42]], [E('f3'), [psuW.x, 0.9, psuW.z, 6.5, -0.2, 0.2, 42]]);
@@ -175,7 +175,7 @@ function computeCues() {
   CK.push([S('a1') + 0.3, CS], [C.rwA.b, [3.25, 2.5, -2.0, 11, 0.1, 0.1, 40]]);
   CK.push([C.fansF + 0.2, [2.4, 2.4, -2.0, 10.5, -0.35, 0.1, 40]], [E('a3'), [2.6, 2.4, -2.0, 10.5, 0.35, 0.1, 40]]);
   CK.push([S('e1') + 0.4, [-1.0, 1.8, -0.5, 23, 0.12, 0.16, 40]], [C.hostWorld, [-1.0, 1.8, -0.5, 22, -0.05, 0.14, 40]]);
-  CK.push([C.hostWorld + 0.9, [-0.3, 2.6, 2.5, 33, 0.05, 0.09, 42]], [TL.duration, [-0.3, 2.8, 2.5, 34, 0.2, 0.11, 42]]);
+  CK.push([C.hostWorld + 0.9, [-0.3, 2.0, 2.0, 30, 0.05, 0.12, 42]], [TL.duration, [-0.3, 2.2, 2.0, 31, 0.2, 0.14, 42]]);
   C.camKeys = sortK(CK);
 
   C.shakes = [[C.zap1, 0.06], [C.zap2, 0.08], [C.hot1, 0.05], [C.off, 0.05], [C.stamp + 0.18, 0.12]];
@@ -409,8 +409,8 @@ function applyAsm(t) {
 
 // ================================================================ cenário
 const COL = {
-  wall: '#3d3f6e', floor: '#7a5a43', desk: '#8b5e3c', deskDark: '#5c3c25', case: '#1d2027', case2: '#2b2f39',
-  board: '#1f3a33', steel: '#c4ccd8', dsteel: '#2f343c', copper: '#d0814a', fin: '#c9d1dc', ram: '#2a2d35',
+  wall: '#5b62a8', floor: '#9a7458', desk: '#a8744c', deskDark: '#6e4a2f', case: '#e8ebf0', case2: '#cfd4dc',
+  board: '#2f5d50', steel: '#c4ccd8', dsteel: '#2f343c', copper: '#d0814a', fin: '#c9d1dc', ram: '#2a2d35',
   pcb: '#1c5c3a', ssd: '#1f3b6e', gpu: '#2a2e36', psu: '#15171c', screen: '#0b0d12', white: '#eef0f3',
 };
 const R = {};
@@ -516,7 +516,7 @@ function buildCase() {
   const g = grp(null, CASE.x, CASE.y, CASE.z); R.case = g;
   const { L, H, D, t } = CASE;
   const cm = M(COL.case, { roughness: 0.45, metalness: 0.2 });
-  const mesht = canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#1a1c22'; c.fillRect(0, 0, w, h); c.fillStyle = '#3a3e48'; for (let y = 8; y < h; y += 16) for (let x = 8 + ((y / 16) % 2) * 8; x < w; x += 16) { c.beginPath(); c.arc(x, y, 4, 0, 7); c.fill(); } });
+  const mesht = canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#d9dde4'; c.fillRect(0, 0, w, h); c.fillStyle = '#9aa1ad'; for (let y = 8; y < h; y += 16) for (let x = 8 + ((y / 16) % 2) * 8; x < w; x += 16) { c.beginPath(); c.arc(x, y, 4, 0, 7); c.fill(); } });
   mesht.wrapS = mesht.wrapT = THREE.RepeatWrapping; mesht.repeat.set(3, 3);
   const parts = [
     [boxC(0, 0, 0, L, H, t, cm, g), { dz: -3 }],
@@ -805,7 +805,7 @@ function spinFan(f, on, t, speed) { f.userData.spin.rotation.y = on ? t * speed 
 function updateWorld(t) {
   applyAsm(t);
   const dk = dark(t);
-  hemi.intensity = lerp(1.25, 0.25, dk); sun.intensity = lerp(2.4, 0.2, dk); fill.intensity = lerp(0.8, 0.15, dk);
+  hemi.intensity = lerp(1.9, 0.3, dk); sun.intensity = lerp(3.0, 0.2, dk); fill.intensity = lerp(1.3, 0.15, dk); R.caseLight.intensity = lerp(10, 1, dk);
   const on = pcOn(t);
   // processador: na mesa, depois voa para o soquete
   R.cpu.visible = t >= C.cpu0;
@@ -1237,7 +1237,7 @@ function gauge(x, y, label, temp, s = 1) {
 }
 function drawGauges(t, wt) {
   const cpuS = project(CW(CPU.x, CPU.y + 0.6, 0.6));
-  if (between(wt, C.on1, E('t3') + 0.3)) gauge(cl(cpuS[0] + 230, 150, 930), cl(cpuS[1] - 120, 260, 1300), 'PROCESSADOR', cpuTemp(wt), 1.1);
+  if (between(wt, C.on1, E('t3') + 0.3)) gauge(cl(cpuS[0] + 230, 170, 900), cl(cpuS[1] - 120, 260, 1300), 'PROCESSADOR', cpuTemp(wt), 1.1);
   if (between(wt, S('a1'), E('a3') + 0.3)) {
     gauge(250, 300, 'PROCESSADOR', cpuTemp(wt), 1.0);
     gauge(830, 300, 'PLACA DE VÍDEO', gpuTemp(wt), 1.0);
@@ -1314,7 +1314,7 @@ function overlays(t) {
   if (t >= C.stamp) {
     const k = P(t, C.stamp, 0.22);
     const sc = lerp(3, 1, EZ.o(k));
-    ctx.save(); ctx.translate(540, 700); ctx.rotate(-0.12); ctx.scale(sc, sc); ctx.globalAlpha = cl(k * 2);
+    ctx.save(); ctx.translate(540, 520); ctx.rotate(-0.12); ctx.scale(sc, sc); ctx.globalAlpha = cl(k * 2);
     ctx.fillStyle = 'rgba(255,255,255,.94)'; ctx.strokeStyle = '#1f8f55'; ctx.lineWidth = 12;
     rr(-330, -110, 660, 220, 30); ctx.fill(); ctx.stroke();
     ctx.lineWidth = 4; rr(-310, -90, 620, 180, 22); ctx.stroke();
@@ -1326,7 +1326,7 @@ function overlays(t) {
       const cols = ['#ffd23f', '#e63946', '#2a9d8f', '#4d7cfe', '#ff8a2a', '#8e5bd1'];
       for (let i = 0; i < 110; i++) {
         const ang = -Math.PI / 2 + (rnd(i) - 0.5) * 2.6, v = 600 + rnd(i + 7) * 900;
-        const x = 540 + Math.cos(ang) * v * a, y = 700 + Math.sin(ang) * v * a + 900 * a * a;
+        const x = 540 + Math.cos(ang) * v * a, y = 520 + Math.sin(ang) * v * a + 900 * a * a;
         if (y > H + 40) continue;
         ctx.save(); ctx.translate(x, y); ctx.rotate(a * 8 + i); ctx.scale(1, Math.cos(a * 10 + i)); ctx.fillStyle = cols[i % cols.length];
         ctx.fillRect(-10, -6, 20, 12); ctx.restore();
@@ -1378,10 +1378,11 @@ function setup(tl) {
   buildWords();
   buildRoom(); buildCase(); buildBoard(); buildCPU(); buildCooler(); buildSSD(); buildRAM(); buildGPU(); buildPSUs();
   buildCaseFans(); buildDeskStuff(); buildEffects();
+  R.caseLight = new THREE.PointLight('#f2f6ff', 10, 9, 1.4); R.caseLight.position.copy(CW(2.0, 4.1, 2.6)); scene.add(R.caseLight);
   R.heatLight = new THREE.PointLight('#ff4a1a', 0, 7, 1.5); R.heatLight.position.copy(CW(2.25, 2.3, 1.2)); scene.add(R.heatLight);
   HOST = makeHost(hostScene);
-  const HS = 5.5;
-  HOSTW_PLACE = grp(null, -0.3, FLOOR + 1.68 * HS, 7.5); HOSTW_PLACE.scale.setScalar(HS);
+  const HS = 3.4;
+  HOSTW_PLACE = grp(null, -0.3, FLOOR + 1.68 * HS, 6.4); HOSTW_PLACE.scale.setScalar(HS);
   HOSTW = makeHost(HOSTW_PLACE);
 }
 
