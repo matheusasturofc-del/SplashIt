@@ -2,7 +2,7 @@
   "title": "Elevador",
   "engine": "chatterbox",
   "chatterbox": {
-    "ref": "ref_cadu.wav",
+    "ref": "ref_faber.wav",
     "exaggeration": 0.6,
     "cfg": 0.3
   },
