@@ -1,0 +1,87 @@
+{
+  "title": "Xadrez",
+  "header": ["COMO FOI INVENTADO O ", "XADREZ"],
+  "engine": "chatterbox",
+  "chatterbox": {
+    "ref": "ref_faber.wav",
+    "exaggeration": 0.6,
+    "cfg": 0.3
+  },
+  "voicePitch": 1.0,
+  "voice": "pt_BR-faber-medium",
+  "lengthScale": 0.97,
+  "gapLine": 0.1,
+  "gapBeat": 0.3,
+  "beats": [
+    {
+      "id": "hook",
+      "lines": [
+        { "id": "h1", "text": "Se você quiser treinar generais colocando dois exércitos de verdade para lutar,", "pad": 0.2 },
+        { "id": "h2", "text": "você não vai ter um treino. Vai ter uma guerra.", "pad": 1.4 }
+      ]
+    },
+    {
+      "id": "tabuleiro",
+      "lines": [
+        { "id": "b1", "text": "Então você leva a batalha para cima de uma mesa, num tabuleiro de 8 por 8 casas, que já existia na Índia.", "say": "Então você leva a batalha para cima de uma mesa, num tabuleiro de oito por oito casas, que já existia na Índia." },
+        { "id": "b2", "text": "Esse é o tabuleiro. É por isso que o xadrez tem 64 casas.", "say": "Esse é o tabuleiro. É por isso que o xadrez tem sessenta e quatro casas.", "hl": "tabuleiro" }
+      ]
+    },
+    {
+      "id": "pecas",
+      "lines": [
+        { "id": "q1", "text": "Mas se todas as peças andam do mesmo jeito, ninguém precisa pensar.", "pad": 1.4 },
+        { "id": "q2", "text": "Então você copia o exército indiano: soldados, cavalos, elefantes e carros de guerra, cada um andando de um jeito." },
+        { "id": "q3", "text": "Esse é o chaturanga, que quer dizer quatro divisões. É por isso que o cavalo pula em L até hoje.", "say": "Esse é o tchaturanga, que quer dizer quatro divisões. É por isso que o cavalo pula em éle até hoje.", "hl": "chaturanga" }
+      ]
+    },
+    {
+      "id": "rei",
+      "lines": [
+        { "id": "k1", "text": "Mas para ganhar, você tem que capturar todas as peças, e a partida não acaba nunca.", "pad": 1.4 },
+        { "id": "k2", "text": "Então o jogo termina quando o rei fica cercado, sem ter para onde fugir." },
+        { "id": "k3", "text": "Os persas chamavam o rei de xá. É por isso que a gente fala xeque-mate: o rei está derrotado.", "hl": "xeque-mate" }
+      ]
+    },
+    {
+      "id": "casas",
+      "lines": [
+        { "id": "c1", "text": "Mas num tabuleiro liso, é difícil enxergar as diagonais.", "pad": 1.4 },
+        { "id": "c2", "text": "Então, na Europa da Idade Média, as casas ganham duas cores, alternadas." },
+        { "id": "c3", "text": "É por isso que o tabuleiro é quadriculado.", "hl": "quadriculado", "pad": 0.3 }
+      ]
+    },
+    {
+      "id": "dama",
+      "lines": [
+        { "id": "d1", "text": "Mas o conselheiro do rei só andava uma casa, e as partidas eram lentas demais.", "pad": 1.4 },
+        { "id": "d2", "text": "Então, na Espanha, por volta de 1475, ele vira a dama, e anda quantas casas quiser, em qualquer direção.", "say": "Então, na Espanha, por volta de mil quatrocentos e setenta e cinco, ele vira a dama, e anda quantas casas quiser, em qualquer direção." },
+        { "id": "d3", "text": "Essa é a dama. E o bispo passa a cruzar o tabuleiro inteiro na diagonal.", "hl": "dama" }
+      ]
+    },
+    {
+      "id": "roque",
+      "lines": [
+        { "id": "r1", "text": "Mas o rei fica preso no meio do tabuleiro, exposto a todos os ataques.", "pad": 1.4 },
+        { "id": "r2", "text": "Então, num lance só, o rei anda duas casas e a torre pula para o lado dele." },
+        { "id": "r3", "text": "Esse é o roque.", "say": "Esse é o róque.", "hl": "roque", "pad": 0.3 }
+      ]
+    },
+    {
+      "id": "relogio",
+      "lines": [
+        { "id": "t1", "text": "Mas tinha jogador que pensava horas num lance só, e a partida não acabava.", "pad": 1.4 },
+        { "id": "t2", "text": "Então, em 1883, entra o relógio de xadrez: cada jogador tem o seu tempo, e se acabar, perdeu.", "say": "Então, em mil oitocentos e oitenta e três, entra o relógio de xadrez: cada jogador tem o seu tempo, e se acabar, perdeu." },
+        { "id": "t3", "text": "É por isso que o jogador aperta o relógio depois de cada lance.", "hl": "relógio" }
+      ]
+    },
+    {
+      "id": "final",
+      "lines": [
+        { "id": "e1", "text": "Coloque os campeonatos, os mestres e milhões de pessoas jogando pelo celular." },
+        { "id": "e2", "text": "Obra entregue: você inventou o xadrez.", "hl": "Obra entregue", "pad": 0.4 },
+        { "id": "e3", "text": "Comenta aqui qual invenção eu mostro no próximo vídeo.", "pad": 1.2 }
+      ]
+    }
+  ]
+}
