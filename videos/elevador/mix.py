@@ -252,8 +252,16 @@ def main():
     total = tl["duration"]
     N = round(SR * total) + SR
     voice = np.zeros(N); fx = np.zeros(N)
+    pitch = json.loads((ROOT / "script.json").read_text(encoding="utf-8")).get("voicePitch", 1.0)
     for l in tl["lines"]:
-        v = read_wav(BUILD / "tts" / f"{l['id']}.wav")
+        src = BUILD / "tts" / f"{l['id']}.wav"
+        if pitch != 1.0:  # voz mais grossa: abaixa o tom sem mudar a duração
+            deep = BUILD / "tts" / f"{l['id']}.p{pitch}.wav"
+            if not deep.exists():
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-af",
+                                f"rubberband=pitch={pitch}:pitchq=quality", "-ar", str(SR), "-ac", "1", str(deep)], check=True)
+            src = deep
+        v = read_wav(src)
         s = round(SR * l["start"])
         voice[s : s + len(v)] += v[: N - s]
     for e in ev:

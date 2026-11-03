@@ -39,8 +39,8 @@ def tighten(out: Path, words):
     tmp.replace(out)
 
 
-def stamp(line, engine):
-    return json.dumps([engine, line.get("say", line["text"])], ensure_ascii=False)
+def stamp(line, engine, cfg=None):
+    return json.dumps([engine, line.get("say", line["text"]), cfg or {}], ensure_ascii=False, sort_keys=True)
 
 
 def piper(script, line, out):
@@ -65,7 +65,7 @@ def main():
     for _, line in all_lines:
         out = TTS / f"{line['id']}.wav"
         tag = out.with_suffix(".txt")
-        if out.exists() and tag.exists() and tag.read_text(encoding="utf-8") == stamp(line, engine):
+        if out.exists() and tag.exists() and tag.read_text(encoding="utf-8") == stamp(line, engine, script.get(engine)):
             continue
         todo.append(line)
     if todo:
@@ -85,7 +85,7 @@ def main():
             for line in todo:
                 piper(script, line, TTS / f"{line['id']}.wav")
         for line in todo:
-            (TTS / f"{line['id']}.txt").write_text(stamp(line, engine), encoding="utf-8")
+            (TTS / f"{line['id']}.txt").write_text(stamp(line, engine, script.get(engine)), encoding="utf-8")
 
     lines = []
     t = 0.35

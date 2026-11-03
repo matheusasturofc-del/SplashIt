@@ -43,7 +43,7 @@ function st(p, i, n, span = 0.45) { if (n <= 1) return p; return cl((p - i * (1 
 const FH = 2.5, NF = 5, ROOF = 12.5;
 const BX = 4.1, SXL = -1.8, SXR = 1.6, BZ = 2.5, SZ = 1.4;
 const CABX = -0.4, CABW = 2.0, CABH = 2.0, CABD = 2.0;
-const CWX = 1.15, CWW = 0.54, CWH = 1.7, CWD = 0.5;
+const CWX = 1.15, CWW = 0.44, CWH = 1.7, CWD = 0.5;
 const PUL = { x: 0.375, y: 13.3, r: 0.775 };
 const MOT = { x: 1.85, y: 13.15 };
 const BRK = { x: 2.85, y: 13.15, r: 0.22 };
@@ -96,20 +96,24 @@ function computeCues() {
   C.rr0 = wT('c1', 'roda') + 0.1;
   C.cw0 = wT('c2', 'bloco') - 0.15;
   C.cwp0 = C.cw0 + 0.35;
-  C.sw0 = S('g1') + 0.15; C.sw1 = E('g1') + 0.3; C.swW = 2 * Math.PI / 1.1;
+  C.REW = [];
+  const RW = (a, to, from) => { const r = { a, b: a + 1.0, to, from: from ?? a }; C.REW.push(r); return r; };
+  C.rwH = RW(E('h3') + 0.1, C.lift0 - 0.1);
+  C.sw0 = S('g1') + 0.15; C.swW = 2 * Math.PI / 1.1;
+  C.rwG = RW(E('g1') + 0.15, C.sw0 - 0.05); C.sw1 = C.rwG.a;
   C.rl0 = wT('g2', 'trilhos') - 0.2;
   C.snap = wT('k1', 'arrebenta') + 0.1;
   C.dropK = 10; C.gK = 2 * C.dropK / (0.85 * 0.85); C.land = C.snap + 0.85;
-  C.rwS = Math.max(C.land + 0.5, E('k1') + 0.1); C.rwE = C.rwS + 0.9;
+  C.rwK = RW(Math.max(C.land + 0.5, E('k1') + 0.1), C.snap - 0.25); C.rwS = C.rwK.a; C.rwE = C.rwK.b;
   C.cb0 = wT('k2', 'cabos') - 0.1;
-  C.off1 = wT('f1', 'acaba') + 0.1; C.on1 = S('f2') - 0.05;
-  C.drift0 = wT('f1', 'lado') - 0.2; C.drift1 = E('f1') + 0.45;
-  C.up0 = S('f2') + 0.05;
+  C.off1 = wT('f1', 'acaba') + 0.1;
+  C.drift0 = wT('f1', 'lado') - 0.2; C.drift1 = E('f1') + 0.35;
+  C.rwF = RW(Math.max(C.drift1 + 0.3, E('f1') + 0.1), C.off1 - 0.15); C.on1 = C.rwF.b - 0.15;
   C.brk0 = wT('f2', 'freio') - 0.1;
   C.brkE = wT('f2', 'energia');
   C.off2 = wT('f3', 'sem luz') - 0.1; C.clac = C.off2 + 0.08; C.on2 = S('s1') - 0.15;
   C.s1det = wT('s1', 'soltarem') + 0.05; C.s1frz = C.s1det + 0.5;
-  C.s1rwS = S('s2') + 0.05; C.s1rwE = C.s1rwS + 0.6;
+  C.s1rw = RW(Math.max(S('s2') + 0.05, C.s1frz + 0.4), C.s1det - 0.15, C.s1frz); C.s1rwS = C.s1rw.a; C.s1rwE = C.s1rw.b;
   C.gov0 = wT('s2', 'roda') - 0.1;
   C.g0 = wT('s2', 'gira') - 0.3;
   C.d2 = wT('s2', 'rápido') - 0.35;
@@ -120,12 +124,14 @@ function computeCues() {
   C.po0 = S('p1') + 0.35;
   C.pw0 = S('p1') + 0.55; C.pw1 = wT('p1', 'quase') - 0.1;
   C.pt0 = C.pw1; C.pt1 = E('p1') + 0.35;
+  C.rwP = RW(Math.max(C.pt1 + 0.1, E('p1') + 0.1), C.po0 - 0.05);
   C.pout0 = S('p2') + 0.3;
   C.lt0 = wT('p2', 'trava') - 0.25;
   C.arr0 = wT('p2', 'cabine') - 0.5; C.arr1 = wT('p2', 'chega') + 0.35;
   C.unlock = Math.max(C.arr1 + 0.05, wT('p2', 'destrava'));
-  C.rw0 = S('r1') - 0.7; C.rw1 = S('r1') + 0.6;
   C.cl0 = wT('r1', 'fecha'); C.slam = C.cl0 + 0.35;
+  C.rw0 = S('r1') - 0.9; C.rw1 = Math.min(S('r1') + 0.6, C.cl0 - 0.1);
+  C.rwR = RW(Math.max(C.slam + 0.8, E('r1') + 0.1), C.cl0 - 0.05);
   C.ro0 = S('r2') + 0.05;
   C.bm0 = wT('r2', 'cortina') - 0.2;
   C.cl2 = wT('r2', 'se alguma') - 0.15; C.h1 = wT('r2', 'corta') + 0.1;
@@ -144,8 +150,7 @@ function computeCues() {
   C.cross = (C.c5a + C.c5b) / 2;
   C.g3up = wT('g3', 'sobe') - 0.4; K.push([C.g3up, 3], [C.g3up + 1.6, 4]);
   K.push([S('k3') - 0.1, 4], [E('k3') + 0.5, 2]);
-  K.push([C.drift0, 2], [C.drift1, 0, 'i']);
-  K.push([C.up0, 0], [C.up0 + 1.1, 2]);
+  K.push([C.drift0, 2], [C.drift1, 0, 'i'], [C.rwF.a, 0], [C.rwF.a + 0.001, 2, 'lin']);
   K.push([S('s1') - 0.1, 2], [S('s1') + 0.8, 3]);
   K.push([C.g0, 3], [C.g0 + 1.2, 3.5]);
   K.push([C.reset, 3.5], [C.reset + 0.01, 4, 'lin']);
@@ -153,7 +158,7 @@ function computeCues() {
   K.push([C.ride0, 2], [C.ride1, 4]);
   C.cabKeys = K;
 
-  C.lightKeys = [[0, 0], [C.off1, 0], [C.off1 + 0.12, 1, 'lin'], [C.on1, 1], [C.on1 + 0.3, 0, 'lin'],
+  C.lightKeys = [[0, 0], [C.off1, 0], [C.off1 + 0.12, 1, 'lin'], [C.rwF.a, 1], [C.rwF.a + 0.001, 0, 'lin'],
     [C.off2, 0], [C.off2 + 0.12, 1, 'lin'], [C.on2, 1], [C.on2 + 0.3, 0, 'lin']];
 
   C.bangs = [];
@@ -201,8 +206,9 @@ function computeCues() {
   CK.push([C.slam - 0.4, DOOR], [C.slam + 0.4, [-1.9, 6.0, 0, 3.0, -0.8, 0.1, 58]],
     [C.bm0 + 0.2, [-1.85, 6.0, 0, 2.9, -0.85, 0.06, 58]], [E('r3'), [-1.85, 6.0, 0, 3.0, -0.65, 0.06, 58]]);
   CK.push([C.doorEnd + 0.7, [CABX, 6.0, 0.3, 6.5, 0.25, 0.1, 40]], [C.ride0, [CABX, 6.0, 0.3, 6.3, 0.05, 0.1, 40]],
-    [C.ride1, [CABX, 11.0, 0.3, 7.5, -0.2, 0.08, 40]], [S('e3') + 0.2, [CABX, 11.0, 0.3, 8.5, -0.3, 0.08, 40]],
-    [S('e3') + 1.2, [0, 7.4, 0, 28, 0.2, 0.12, 38]], [TL.duration, [0, 7.4, 0, 30, -1.0, 0.18, 38]]);
+    [C.ride1, [CABX, 11.0, 0.3, 7.5, -0.2, 0.08, 40]], [S('e3') - 0.15, [CABX, 11.0, 0.3, 8.5, -0.3, 0.08, 40]],
+    [S('e3') + 0.75, [1.0, 4.2, 2.4, 12.5, 0.42, 0.02, 48]], [TL.duration, [0.8, 4.6, 2.2, 13.5, 0.05, 0.08, 48]]);
+  C.hostWorld = S('e3') + 0.2;
   C.camKeys = sortK(CK);
 
   C.shakes = [[C.burn, 0.25], [C.burn + 0.35, 0.2], [C.land, 0.7], [C.drift1, 0.4], [C.stop, 0.3], [C.slam, 0.2], [C.stamp + 0.18, 0.4]];
@@ -211,12 +217,12 @@ function computeCues() {
   C.doorKeys = [[0, 0], [C.po0, 0], [C.po0 + 0.6, 1], [C.pt1 + 0.25, 1], [C.pt1 + 0.85, 0],
     [C.unlock + 0.2, 0], [C.unlock + 0.85, 1],
     [C.cl0, 1], [C.slam, 0.42, 'i2'],
-    [C.ro0, 0.42], [C.ro0 + 0.5, 1],
+    [C.rwR.a, 0.42], [C.rwR.a + 0.001, 1, 'lin'],
     [C.cl2, 1], [C.h1, 0.6, 'lin'], [C.h1 + 0.05, 0.6], [C.h1 + 0.5, 1],
     [C.cl3, 1], [C.h2, 0.62, 'lin'], [C.h2 + 0.05, 0.62], [C.h2 + 0.5, 1],
     [C.doorEnd + 1.2, 1], [C.doorEnd + 1.8, 0], [C.ride0 - 0.3, 0]];
   C.personKeys = [[C.pw0, [-3.6, -1.7]], [C.pw1, [-2.08, 0], 'o'], [C.pt1, [-2.08, 0]],
-    [C.pt1 + 0.45, [-2.7, -0.3]], [C.pout0, [-2.7, -0.3]], [C.pout0 + 1.1, [-3.7, -2.0], 'i2'],
+    [C.pt1 + 0.45, [-2.7, -0.3]],
     [C.rw0 - 0.01, [-3.7, -2.0]], [C.rw0, [-3.7, -2.0], 'lin'], [C.rw1, [-1.95, 0], 'o'],
     [C.ro0, [-1.95, 0]], [C.ro0 + 0.6, [-2.45, 0]]];
   C.reachKeys = [[0, 0], [C.cl2, 0], [C.h1 - 0.1, 1], [C.h1 + 0.6, 1], [C.h1 + 1.0, 0],
@@ -230,7 +236,6 @@ function computeCues() {
   Rx(wT('g3', 'reto'), 1.5, 'happy', 'thumbs', null);
   Rx(C.snap, C.land - C.snap, 'shock', 'up', 'AAAH!');
   Rx(C.land, C.rwS - C.land, 'wince', 'cover', null);
-  Rx(C.rwS, 1.0, 'worried', 'down', 'Peraí...');
   Rx(S('k3') + 0.2, 1.4, 'happy', 'thumbs', null);
   Rx(C.off1 + 0.1, C.drift1 - C.off1 - 0.2, 'worried', 'down', '?');
   Rx(C.drift1 - 0.1, 1.3, 'shock', 'cheeks', '!!');
@@ -246,6 +251,7 @@ function computeCues() {
   Rx(C.ride1, 0.9, 'happy', 'thumbs', null);
   Rx(C.stamp + 0.15, 2.4, 'happy', 'cheer', 'Uhuul!');
   Rx(C.cta, TL.duration - C.cta, 'happy', 'point', null);
+  for (const r of C.REW) Rx(r.a, r.b - r.a, 'worried', 'point', 'Volta!');
   REACT.sort((a, b) => a.t - b.t);
 
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -277,7 +283,6 @@ function computeCues() {
   // queda
   Ar(C.snap + 0.05, C.land, t => V(CABX, cabBottom(t) + CABH + 0.6, 0.6), DN, 1.8, RED);
   Ar(C.drift0 + 0.2, C.drift1, cabSide, DN, 1.3, RED);
-  Ar(C.up0, C.up0 + 1.1, cabSide, UP, 1.3, GREEN);
   // freio: molas apertam, energia abre, sem luz aperta de novo
   const shoeAt = s => () => V(BRK.x + s * 0.75, BRK.y, 0.3);
   for (const s of [-1, 1]) {
@@ -327,14 +332,11 @@ function computeCues() {
   sfx(C.snap, 'snap', 1.0);
   sfx(C.snap + 0.05, 'fall', 0.5, C.land - C.snap);
   sfx(C.land, 'crash', 1.0);
-  sfx(C.rwS, 'rewind', 0.6, C.rwE - C.rwS);
   asmSfx(C.cb0, 1.8, 5, 'zip', 0.5);
   sfx(S('k3') - 0.1, 'hum', 0.3, E('k3') + 0.6 - S('k3'));
   sfx(C.off1, 'powerdown', 0.7);
   sfx(C.drift0, 'slide', 0.5, C.drift1 - C.drift0);
   sfx(C.drift1, 'crash', 0.7);
-  sfx(C.on1, 'powerup', 0.6);
-  sfx(C.up0, 'hum', 0.3, 1.1);
   asmSfx(C.brk0, 1.2, 5, 'clank', 0.5);
   sfx(C.brkE, 'zap', 0.6);
   sfx(C.off2, 'powerdown', 0.7);
@@ -343,7 +345,6 @@ function computeCues() {
   sfx(S('s1') - 0.1, 'hum', 0.3, 0.9);
   sfx(C.s1det, 'snap', 0.9);
   sfx(C.s1frz, 'freeze', 0.7);
-  sfx(C.s1rwS, 'rewind', 0.6, C.s1rwE - C.s1rwS);
   asmSfx(C.gov0, 1.4, 5, 'pop', 0.5);
   sfx(C.g0, 'hum', 0.3, 1.2);
   sfx(C.d2, 'snap', 0.9);
@@ -363,7 +364,6 @@ function computeCues() {
   sfx(C.unlock + 0.2, 'slide', 0.5, 0.65);
   sfx(C.cl0, 'slide', 0.5, C.slam - C.cl0);
   sfx(C.slam, 'bonk', 1.0);
-  sfx(C.ro0, 'slide', 0.45, 0.5);
   asmSfx(C.bm0, 1.2, 6, 'beep', 0.35);
   sfx(C.cl2, 'slide', 0.4, C.h1 - C.cl2);
   sfx(C.h1, 'alarm', 0.45); sfx(C.h1 + 0.05, 'slide', 0.4, 0.45);
@@ -377,6 +377,7 @@ function computeCues() {
   sfx(C.stamp + 0.18, 'stamp', 1.0);
   sfx(C.stamp + 0.22, 'tada', 0.8);
   sfx(C.cta, 'pop', 0.6);
+  for (const r of C.REW) { sfx(r.a, 'freeze', 0.55); sfx(r.a + 0.08, 'rewind', 0.65, r.b - r.a - 0.1); }
   SFX.sort((a, b) => a.t - b.t);
 }
 
@@ -385,16 +386,8 @@ const cabF = t => kf(t, C.cabKeys);
 const dark = t => kf(t, C.lightKeys);
 function cabDy(t) {
   let dy = 0;
-  if (t >= C.snap && t < C.rwE) {
-    if (t < C.land) dy = 0.5 * C.gK * (t - C.snap) ** 2;
-    else if (t < C.rwS) dy = C.dropK;
-    else dy = C.dropK * (1 - EZ.io(P(t, C.rwS, C.rwE - C.rwS)));
-  }
-  if (t >= C.s1det && t < C.s1rwE) {
-    let d = 0.5 * 15 * (Math.min(t, C.s1frz) - C.s1det) ** 2;
-    if (t > C.s1rwS) d *= 1 - EZ.io(P(t, C.s1rwS, C.s1rwE - C.s1rwS));
-    dy += d;
-  }
+  if (t >= C.snap && t <= C.rwK.a) dy = t < C.land ? 0.5 * C.gK * (t - C.snap) ** 2 : C.dropK;
+  if (t >= C.s1det && t <= C.s1rw.a) dy += 0.5 * 15 * (Math.min(t, C.s1frz) - C.s1det) ** 2;
   if (t >= C.d2 && t < C.reset) dy += kf(t, [[C.d2, 0], [C.stop, C.gDrop, 'i2'], [C.stop + 0.25, C.gDrop + 0.1, 'o']]);
   return dy;
 }
@@ -402,26 +395,22 @@ const cabBottomRaw = (f, dy) => f * FH - dy;
 const cabBottom = t => cabBottomRaw(cabF(t), cabDy(t));
 function cwDy(t) {
   let dy = 0;
-  if (t >= C.s1det && t < C.s1rwE) {
-    let d = 0.5 * 15 * (Math.min(t, C.s1frz) - C.s1det) ** 2;
-    if (t > C.s1rwS) d *= 1 - EZ.io(P(t, C.s1rwS, C.s1rwE - C.s1rwS));
-    dy += d;
-  }
+  if (t >= C.s1det && t <= C.s1rw.a) dy += 0.5 * 15 * (Math.min(t, C.s1frz) - C.s1det) ** 2;
   if (t >= C.d2 && t < C.reset) dy += 0.5 * 9 * Math.min(t - C.d2, 1.2) ** 2;
   return dy;
 }
 const cwBottomAt = t => Math.max(12 - CWH - 2.5 * cabF(t) - cwDy(t), PIT + 0.35);
-const detached = t => (t >= C.s1det && t < C.s1rwE - 0.05) || (t >= C.d2 && t < C.reset);
-const ropeSnapped = t => t >= C.snap && t < C.rwE - 0.05;
+const detached = t => (t >= C.s1det && t <= C.s1rw.a) || (t >= C.d2 && t < C.reset);
+const ropeSnapped = t => t >= C.snap && t <= C.rwK.a;
 function cabSwing(t) {
-  if (t < C.sw0 || t > C.sw1 + 0.6) return { dx: 0, rot: 0, spin: 0 };
+  if (t < C.sw0 || t > C.rwG.a) return { dx: 0, rot: 0, spin: 0 };
   const env = Math.min(P(t, C.sw0, 0.6), 1 - P(t, C.sw1, 0.6));
   const ph = (t - C.sw0) * C.swW;
   return { dx: 0.46 * Math.sin(ph) * env, rot: 0.07 * Math.sin(ph + 0.6) * env, spin: 0.55 * Math.sin((t - C.sw0) * 2.3) * env };
 }
 function scare(t) {
   if (t >= C.snap && t < C.land) return 1;
-  if (t >= C.s1det && t < C.s1rwS) return 1;
+  if (t >= C.s1det && t <= C.s1rw.a) return 1;
   if (t >= C.d2 && t < C.stop) return 0.6;
   if (t >= C.drift0 + 0.5 && t < C.drift1) return 0.5;
   return 0;
@@ -435,6 +424,13 @@ function shakeAt(t) {
   }
   return [x, y];
 }
+// tempo do mundo 3D: no rebobinar ele corre para trás; no congelado ele para
+function worldTime(t) {
+  for (const r of C.REW) if (t >= r.a && t < r.b) return lerp(r.from, r.to, EZ.io(P(t, r.a, r.b - r.a)));
+  if (t >= C.s1frz && t < C.s1rw.a) return C.s1frz;
+  return t;
+}
+const inRewind = t => C.REW.find(r => t >= r.a && t < r.b);
 const doorOpenAt = t => (t > S('p1') - 0.5 ? kf(t, C.doorKeys) : 0);
 let _lockBottom = null;
 const cabBottomAtLock = () => (_lockBottom ??= cabBottom(C.lock));
@@ -543,11 +539,11 @@ function buildEnvironment() {
   boxC(SXL, PIT, -SZ, SXL + 0.05, -0.01, SZ, M('#6b7280')); boxC(SXR - 0.05, PIT, -SZ, SXR, -0.01, SZ, M('#6b7280'));
   boxC(SXL + 0.05, PIT, -SZ, SXR - 0.05, -0.01, -SZ + 0.05, M('#6b7280'));
   boxC(-60, 0, 3.0, 60, 0.06, 5.0, M('#d4d0c8'));
-  boxC(-60, -0.02, 5.0, 60, 0.03, 13, M(COL.road));
+  boxC(-59, -0.02, 5.0, 59, 0.03, 13, M(COL.road));
   for (let x = -40; x < 40; x += 3) boxC(x, 0.03, 8.9, x + 1.6, 0.05, 9.1, M('#f1f1f1'));
   const tree = (x, z, s) => {
     const tr = grp(null, x, 0, z);
-    box(0.25 * s, 1.6 * s, 0.25 * s, M('#8a5a36'), 0, 0.8 * s, 0, tr);
+    box(0.25 * s, 1.6 * s, 0.25 * s, M('#8a5a36'), 0, 0.8 * s + 0.07, 0, tr);
     sph(1.0 * s, M('#4caf50'), 0, 2.0 * s, 0, tr); sph(0.75 * s, M('#5cc160'), 0.5 * s, 2.5 * s, 0.2 * s, tr); sph(0.7 * s, M('#43a047'), -0.5 * s, 2.4 * s, -0.2 * s, tr);
   };
   tree(-6.2, 1.5, 1.2); tree(6.4, 0.5, 1.4); tree(-7.5, -3, 1.0); tree(8, -4, 1.1); tree(-10, 4, 1.3); tree(11, 3.5, 1.0);
@@ -563,9 +559,9 @@ function buildFloor(i) {
   const y0 = i * FH, y1 = y0 + FH;
   const fg = grp(null);
   const W1 = M(COL.wall), W2 = M(COL.wall2);
-  boxC(-BX - 0.1, y0 - 0.08, -BZ, SXL, y0 + 0.08, BZ, M(COL.slab), fg);
+  boxC(-BX - 0.1, y0 - 0.08, -BZ, SXL - 0.02, y0 + 0.08, BZ, M(COL.slab), fg);
   boxC(SXR + 0.01, y0 - 0.08, -BZ, BX + 0.1, y0 + 0.08, BZ, M(COL.slab), fg);
-  boxC(-BX - 0.1, y0 - 0.07, BZ, SXL, y0 + 0.07, BZ + 0.04, M('#e9a23b'), fg);
+  boxC(-BX - 0.1, y0 - 0.07, BZ, SXL - 0.02, y0 + 0.07, BZ + 0.04, M('#e9a23b'), fg);
   boxC(SXR + 0.01, y0 - 0.07, BZ, BX + 0.1, y0 + 0.07, BZ + 0.04, M('#e9a23b'), fg);
   boxC(-BX - 0.1, y0 + 0.08, -BZ, -BX, y1 - 0.08, BZ, W1, fg);
   boxC(BX, y0 + 0.08, -BZ, BX + 0.1, y1 - 0.08, BZ, W1, fg);
@@ -574,13 +570,14 @@ function buildFloor(i) {
   boxC(-BX, y0 + 0.08, -BZ, SXL, y0 + 0.55, -BZ + 0.03, W2, fg);
   boxC(SXR, y0 + 0.08, -BZ, BX, y0 + 0.55, -BZ + 0.03, W2, fg);
   boxC(2.3, y0 + 0.9, -BZ + 0.01, 3.6, y0 + 1.9, -BZ + 0.04, M('#9fd7ff', { emissive: '#4d8fc4', emissiveIntensity: 0.25, roughness: 0.2 }), fg);
-  boxC(SXL, y0, -BZ - 0.1, SXR, y1, -SZ - 0.15, M(COL.core), fg);
-  boxC(SXL, y0, -SZ - 0.15, SXR, y1, -SZ, M(COL.shaft), fg);
-  boxC(SXR, y0, -SZ, SXR + 0.2, y1, SZ, M(COL.shaft), fg);
+  const yt = i === NF - 1 ? ROOF - 0.1 : y1;
+  boxC(SXL, y0, -BZ - 0.1, SXR, yt, -SZ - 0.15, M(COL.core), fg);
+  boxC(SXL, y0, -SZ - 0.15, SXR, yt, -SZ, M(COL.shaft), fg);
+  boxC(SXR, y0, -SZ, SXR + 0.2, yt, SZ, M(COL.shaft), fg);
   const DW = 0.55, DH = 2.0;
-  boxC(DOORX - 0.1, y0, -SZ, DOORX + 0.1, y1, -DW, M(COL.shaft), fg);
-  boxC(DOORX - 0.1, y0, DW, DOORX + 0.1, y1, SZ, M(COL.shaft), fg);
-  boxC(DOORX - 0.1, y0 + DH, -DW, DOORX + 0.1, y1, DW, M(COL.shaft), fg);
+  boxC(DOORX - 0.1, y0, -SZ, DOORX + 0.1, yt, -DW, M(COL.shaft), fg);
+  boxC(DOORX - 0.1, y0, DW, DOORX + 0.1, yt, SZ, M(COL.shaft), fg);
+  boxC(DOORX - 0.1, y0 + DH, -DW, DOORX + 0.1, yt, DW, M(COL.shaft), fg);
   const trim = M('#9aa3b1', { metalness: 0.4, roughness: 0.35 });
   boxC(DOORX - 0.13, y0, -DW - 0.08, DOORX - 0.1, y0 + DH + 0.08, -DW, trim, fg);
   boxC(DOORX - 0.13, y0, DW, DOORX - 0.1, y0 + DH + 0.08, DW + 0.08, trim, fg);
@@ -611,10 +608,10 @@ function buildFloor(i) {
 }
 function buildMachineRoom() {
   const g = grp(null);
-  boxC(-BX - 0.2, ROOF - 0.1, -BZ - 0.1, SXL, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
-  boxC(SXR + 0.01, ROOF - 0.1, -BZ - 0.1, BX + 0.2, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
-  boxC(SXL, ROOF - 0.1, -BZ - 0.1, SXR + 0.01, ROOF + 0.1, -SZ - 0.01, M(COL.slab), g);
-  boxC(SXL, ROOF - 0.1, SZ, SXR, ROOF + 0.1, BZ + 0.1, M(COL.slab), g);
+  boxC(-BX - 0.22, ROOF - 0.08, -BZ - 0.12, SXL - 0.02, ROOF + 0.12, BZ + 0.12, M(COL.slab), g);
+  boxC(SXR + 0.01, ROOF - 0.08, -BZ - 0.12, BX + 0.22, ROOF + 0.12, BZ + 0.12, M(COL.slab), g);
+  boxC(SXL - 0.01, ROOF - 0.1, -BZ - 0.12, SXR + 0.01, ROOF + 0.12, -SZ - 0.01, M(COL.slab), g);
+  boxC(SXL - 0.01, ROOF - 0.08, SZ + 0.01, SXR + 0.01, ROOF + 0.12, BZ + 0.12, M(COL.slab), g);
   for (const z of [-0.75, 0.75]) boxC(SXL, ROOF - 0.05, z - 0.1, SXR, ROOF + 0.12, z + 0.1, M('#d64545'), g);
   boxC(-2.4, ROOF + 0.1, -2.0, 3.4, 14.3, -1.9, M(COL.mr), g);
   boxC(-2.5, ROOF + 0.1, -2.0, -2.4, 14.3, 1.6, M(COL.mr), g);
@@ -665,10 +662,10 @@ function buildCabin() {
   boxC(hw - 0.1, 0.12, -hd + 0.07, hw - 0.07, CABH - 0.1, hd - 0.02, wood, inner);
   boxC(-hw, 0.12, -hd, -hw + 0.07, CABH - 0.1, -0.55, blue, inner);
   boxC(-hw, 0.12, 0.55, -hw + 0.07, CABH - 0.1, hd, blue, inner);
-  boxC(-hw, 1.92, -0.55, -hw + 0.07, CABH - 0.1, 0.55, blue, inner);
+  boxC(-hw, 1.8, -0.55, -hw + 0.07, CABH - 0.1, 0.55, blue, inner);
   const cpm = M('#c9d0da', { metalness: 0.6, roughness: 0.3 });
-  R.cdA = boxC(-hw - 0.05, 0.12, -0.55, -hw - 0.01, 1.92, 0, cpm, inner);
-  R.cdB = boxC(-hw - 0.05, 0.12, 0, -hw - 0.01, 1.92, 0.55, cpm, inner);
+  R.cdA = boxC(-hw - 0.05, 0.13, -0.55, -hw - 0.01, 1.79, 0, cpm, inner);
+  R.cdB = boxC(-hw - 0.05, 0.13, 0.001, -hw - 0.01, 1.79, 0.55, cpm, inner);
   R.cabLamp = boxC(-0.5, CABH - 0.13, -0.4, 0.5, CABH - 0.1, 0.4, new THREE.MeshStandardMaterial({ color: '#fffbe8', emissive: '#fff1c4', emissiveIntensity: 1.4 }), inner);
   boxC(-hw + 0.15, 1.0, -hd + 0.12, hw - 0.15, 1.04, -hd + 0.16, M('#b08b5a', { metalness: 0.5 }), inner);
   boxC(-hw, CABH, -0.12, hw, CABH + 0.16, 0.12, dk, inner);
@@ -685,8 +682,8 @@ function buildCabin() {
   R.shoes = grp(inner);
   for (const y of [0.2, 1.8]) { boxC(-hw - 0.12, y - 0.1, -0.1, -hw, y + 0.1, 0.1, M(COL.orange), R.shoes); boxC(hw, y - 0.1, -0.1, hw + 0.12, y + 0.1, 0.1, M(COL.orange), R.shoes); }
   R.jaws = grp(inner);
-  R.jawL = boxC(-hw - 0.14, -0.2, -0.12, -hw - 0.02, 0.05, 0.12, M(COL.red), R.jaws);
-  R.jawR = boxC(hw + 0.02, -0.2, -0.12, hw + 0.14, 0.05, 0.12, M(COL.red), R.jaws);
+  R.jawL = boxC(-hw - 0.155, -0.2, -0.12, -hw - 0.025, 0.05, 0.12, M(COL.red), R.jaws);
+  R.jawR = boxC(hw + 0.025, -0.2, -0.12, hw + 0.155, 0.05, 0.12, M(COL.red), R.jaws);
   R.lever = box(0.5, 0.05, 0.05, M(COL.red), -hw - 0.13, CABH - 0.25, -hd - 0.1, R.jaws);
   boxC(-hw - 0.11, 0.05, -0.02, -hw - 0.07, CABH - 0.25, 0.02, M(COL.red), R.jaws);
   asm(cab, () => C.cab0, 0.7, { dy: 7, ry: 2.2, s: 0.4 });
@@ -771,7 +768,7 @@ function buildRails() {
       boxC(x - 0.04, y0, -0.06, x + 0.04, y0 + seg, 0.06, rm, g);
       boxC(x - 0.06, y0 + 0.003, -0.015, x + 0.06, y0 + seg - 0.003, 0.015, rm, g);
       if (j === 0) boxC(SXL + 0.1, y0 + 0.4, -0.05, x, y0 + 0.5, 0.05, M('#6f7887'), g);
-      if (j === 3) boxC(x, y0 + 0.4, -0.05, SXR, y0 + 0.5, 0.05, M('#6f7887'), g);
+      if (j === 3) boxC(x + 0.065, y0 + 0.4, -0.05, SXR - 0.005, y0 + 0.5, 0.05, M('#6f7887'), g);
       const q0 = k / n;
       asm(g, () => C.rl0 + q0 * 1.1, 0.5, { dy: 0, dx: j % 2 ? 4 : -4, dz: 3, rz: j % 2 ? -1.5 : 1.5, s: 0.5 });
     }
@@ -878,10 +875,11 @@ hostCam.position.set(0, 1.25, 5.4); hostCam.lookAt(0, 1.05, 0);
 hostScene.add(new THREE.HemisphereLight('#ffffff', '#8a7a6a', 1.6));
 const hk = new THREE.DirectionalLight('#fff3e0', 2.6); hk.position.set(2, 4, 5); hostScene.add(hk);
 const hrim = new THREE.DirectionalLight('#9fd0ff', 2.0); hrim.position.set(-3, 2, -3); hostScene.add(hrim);
-const HOST = {};
-function buildHost() {
+let HOST, HOSTW, HOSTW_PLACE;
+function makeHost(target) {
+  const HOST = {};
   const add = (m, p) => { p.add(m); return m; };
-  const root = new THREE.Group(); hostScene.add(root); HOST.root = root;
+  const root = new THREE.Group(); target.add(root); HOST.root = root;
   const skin = M('#f2c29b'), vest = M('#ff8a1c', { roughness: 0.5 }), shirt = M('#2f6db5');
   HOST.body = grp(root);
   add(mesh(new THREE.CapsuleGeometry(0.62, 0.5, 8, 24), shirt), HOST.body).position.y = 0.3;
@@ -924,6 +922,13 @@ function buildHost() {
     const thumb = add(mesh(new THREE.CapsuleGeometry(0.05, 0.12, 4, 8), skin), a); thumb.position.set(0, -0.62, 0.15); thumb.rotation.x = Math.PI / 2;
     HOST.arms.push({ g: a, thumb, s });
   }
+  // pernas e botinas (aparecem quando ele está dentro do cenário)
+  for (const sx of [-1, 1]) {
+    add(mesh(new THREE.CapsuleGeometry(0.19, 0.5, 6, 14), M('#2c3e66')), root).position.set(sx * 0.26, -0.98, 0);
+    const boot = add(mesh(new THREE.CapsuleGeometry(0.17, 0.2, 6, 12), M('#6b3f1f')), root);
+    boot.rotation.x = Math.PI / 2; boot.position.set(sx * 0.26, -1.36, 0.1);
+  }
+  return HOST;
 }
 // [braçoEsq rotX, rotZ, braçoDir rotX, rotZ]
 const POSES = {
@@ -937,7 +942,7 @@ function hostState(t) {
   if (cur) return { e: cur.e, p: cur.p, b: cur.b, start: cur.t };
   return { e: 'idle', p: 'down', b: null, start: prevEnd };
 }
-function updateHost(t) {
+function updateHost(t, HOST) {
   const cur = hostState(t), prev = hostState(cur.start - 0.001);
   const k = EZ.o(P(t, cur.start, 0.25));
   const pa = POSES[prev.p], pb = POSES[cur.p];
@@ -1031,7 +1036,7 @@ function updateWorld(t) {
   R.drumG.visible = t >= C.mot0 && outP < 1;
   R.drum.rotation.z = cabBottom(t) / DRUM.r;
   const strain = t > C.lift0 && t < C.burn ? P(t, C.lift0, C.burn - C.lift0) : 0;
-  const burned = t >= C.burn;
+  const burned = t >= C.burn && t <= C.rwH.a;
   R.m0body.material.color.set(burned ? '#3a2e2e' : new THREE.Color(COL.motor).lerp(new THREE.Color('#ff3b1f'), strain));
   R.m0body.material.emissive.set('#ff2200'); R.m0body.material.emissiveIntensity = burned ? 0 : strain * 0.6;
   R.m0.position.x = 0.95 + strain * 0.03 * Math.sin(t * 70);
@@ -1060,7 +1065,7 @@ function updateWorld(t) {
   // portas dos andares
   LANDING.forEach((L, i) => {
     const oo = i === DOORF ? o : 0;
-    L.pa.position.z = -0.275 - 0.55 * oo; L.pb.position.z = 0.275 + 0.55 * oo;
+    L.pa.position.z = -0.275 - 0.5 * oo; L.pb.position.z = 0.275 + 0.5 * oo;
     L.btn.material.emissiveIntensity = (i === DOORF && t > C.po0 - 0.6 && t < C.unlock) ? 2 : 0;
   });
   // trava
@@ -1073,7 +1078,7 @@ function updateWorld(t) {
   // cortina de luz
   const bp = P(t, C.bm0, 1.2);
   R.curt.visible = bp > 0 && t < C.doorEnd + 1.2;
-  const half = 0.55 * o;
+  const half = 0.5 * o;
   R.emL.position.z = -half; R.emR.position.z = half;
   const reach = kf(t, C.reachKeys);
   R.beams.forEach((b, i) => {
@@ -1131,14 +1136,14 @@ function updateRopes(t) {
 }
 function updateVisitor(t) {
   const v = R.visitor, u = v.userData;
-  const vis = (t >= C.pw0 && t < C.pout0 + 1.2) || (t >= C.rw0 && t < C.doorEnd + 0.6);
+  const vis = (t >= C.pw0 && t <= C.rwP.a) || (t >= C.rw0 && t < C.doorEnd + 0.6);
   v.visible = vis;
   if (!vis) return;
   const p = kf(t, C.personKeys), p2 = kf(t - 0.06, C.personKeys);
   const dx = p[0] - p2[0], dz = p[1] - p2[1];
   const moving = Math.hypot(dx, dz) > 0.004;
   const teeter = t >= C.pt0 && t < C.pt1;
-  const squish = t >= C.slam && t < C.ro0;
+  const squish = t >= C.slam && t <= C.rwR.a;
   const reach = kf(t, C.reachKeys);
   v.position.set(p[0], DOORF * FH + 0.08 + (moving ? Math.abs(Math.sin(t * 11)) * 0.05 : 0), p[1]);
   v.rotation.set(0, moving ? Math.atan2(dx, dz) : Math.PI / 2, 0);
@@ -1165,7 +1170,7 @@ function burstPts(t, t0, origin, n, pool, offset, opt) {
 }
 function updateParticles(t) {
   R.smoke.forEach(m => (m.visible = false));
-  if (t >= C.burn && t < C.c1x + 0.3) {
+  if (t >= C.burn && t <= C.rwH.a) {
     R.smoke.forEach((m, i) => {
       const life = 1.6 + rnd(i) * 0.8; const a0 = t - C.burn - i * 0.07; if (a0 < 0) return;
       const k = (a0 % life) / life;
@@ -1310,7 +1315,37 @@ function buildCaptions() {
     });
   }
 }
+const WORDS = [];
+function buildWords() {
+  for (const l of TL.lines) {
+    const ws = l.text.split(/\s+/).filter(Boolean);
+    const hl = (l.hl || '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const exact = l.words && l.words.length === ws.length && l.text === l.say;
+    const total = ws.reduce((a, w) => a + w.length + 1, 0);
+    let acc = 0;
+    ws.forEach((w, i) => {
+      let t0 = l.start + (acc / total) * (l.end - l.start);
+      acc += w.length + 1;
+      if (exact) t0 = l.words[i].s;
+      WORDS.push({ t0, w: w.replace(/[,.:;]+$/, ''), hl: hl.includes(w.toLowerCase().replace(/[^a-zà-ú0-9]/g, '')), end: l.end + 0.2 });
+    });
+  }
+  WORDS.forEach((o, i) => { o.t1 = Math.min(o.end, WORDS[i + 1] ? WORDS[i + 1].t0 : o.end); });
+}
 function drawCaption(t) {
+  const o = WORDS.find(o => t >= o.t0 && t < o.t1);
+  if (!o) return;
+  const fs = 112;
+  ctx.font = `700 ${fs}px F`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const k = P(t, o.t0, 0.14);
+  const s = 0.6 + 0.4 * EZ.back(k);
+  const txt = o.w.charAt(0).toUpperCase() + o.w.slice(1);
+  ctx.save(); ctx.translate(540, 1450); ctx.scale(s, s); ctx.rotate(-0.03 + 0.03 * Math.sin(o.t0 * 7));
+  ctx.strokeStyle = '#0f121a'; ctx.lineWidth = 22; ctx.strokeText(txt, 0, 4);
+  ctx.fillStyle = o.hl ? '#ffd23f' : '#ffffff'; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+}
+function drawCaptionOld(t) {
   const c = CAPS.find(c => t >= c.t0 && t < c.t1);
   if (!c) return;
   const fs = 64;
@@ -1367,7 +1402,9 @@ function drawBubble(t) {
   const cur = hostState(t);
   if (!cur.b) return;
   const s = EZ.back(P(t, cur.start, 0.3));
-  ctx.save(); ctx.translate(250, 1600); ctx.scale(s, s); ctx.rotate(0.05 * Math.sin(t * 5));
+  let bx = 250, by = 1600;
+  if (t >= C.hostWorld) { const v = new THREE.Vector3(0, 2.4, 0); HOSTW_PLACE.localToWorld(v); [bx, by] = project(v); bx += 40; by -= 40; }
+  ctx.save(); ctx.translate(bx, by); ctx.scale(s, s); ctx.rotate(0.05 * Math.sin(t * 5));
   ctx.font = '700 44px F';
   const tw = Math.max(60, ctx.measureText(cur.b).width);
   ctx.fillStyle = '#fff'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 6;
@@ -1407,7 +1444,7 @@ function comic(t) {
     const [x, y] = project(new THREE.Vector3(R.visitor.position.x, DOORF * FH + 2.1, R.visitor.position.z));
     ctx.save(); ctx.translate(x + 40, y - 40); ctx.rotate(0.2 * Math.sin(t * 20)); bigWord('!', 0, 0, 120, '#ff4d3d'); ctx.restore();
   }
-  if (t >= C.slam && t < C.ro0) {
+  if (t >= C.slam && t < C.rwR.a) {
     const [x, y] = project(new THREE.Vector3(R.visitor.position.x, DOORF * FH + 1.95, R.visitor.position.z));
     for (let k = 0; k < 4; k++) { const a = t * 5 + k * Math.PI / 2; ctx.save(); ctx.translate(x + Math.cos(a) * 90, y + Math.sin(a) * 22); bigWord('★', 0, 0, 46, '#ffd23f'); ctx.restore(); }
   }
@@ -1431,16 +1468,8 @@ function comic(t) {
   }
 }
 function overlays(t) {
-  for (const [a, b] of [[C.rwS, C.rwE], [C.s1rwS, C.s1rwE]]) {
-    if (t < a || t > b) continue;
-    const k = Math.sin(P(t, a, b - a) * Math.PI);
-    ctx.save(); ctx.globalAlpha = 0.35 * k; ctx.fillStyle = '#9ad0ff';
-    for (let y = ((t * 900) % 24); y < H; y += 24) ctx.fillRect(0, y, W, 3);
-    ctx.globalAlpha = k; ctx.fillStyle = '#fff';
-    for (const dx of [0, 46]) { ctx.beginPath(); ctx.moveTo(110 + dx, 210); ctx.lineTo(70 + dx, 240); ctx.lineTo(110 + dx, 270); ctx.fill(); }
-    ctx.font = '700 40px F'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('VOLTANDO...', 180, 242);
-    ctx.restore();
-  }
+  const rw = inRewind(t);
+  if (rw) vhs(t, rw);
   if (t >= C.s1frz && t < C.s1rwS) {
     const s = EZ.back(P(t, C.s1frz, 0.25)) * (1 + 0.05 * Math.sin(t * 6));
     ctx.save(); ctx.translate(800, 620); ctx.scale(s, s); bigWord('?', 0, 0, 260, '#ffd23f'); ctx.restore();
@@ -1491,6 +1520,29 @@ function overlays(t) {
     ctx.restore();
   }
 }
+// rebobinar de fita: listras brancas, ◀◀ no alto e pause no centro
+function vhs(t, r) {
+  const p = P(t, r.a, r.b - r.a);
+  const k = Math.min(1, P(t, r.a, 0.08) * 1, (1 - p) * 8);
+  ctx.save();
+  ctx.globalAlpha = 0.18 * k; ctx.fillStyle = '#5b6b8a'; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#ffffff';
+  const off = (t * 1400) % 64;
+  for (let y = -64 + off; y < H; y += 64) ctx.fillRect(0, y, W, 5);
+  ctx.globalAlpha = 0.35 * k;
+  for (let i = 0; i < 3; i++) { const y = ((t * 2300 + i * 700) % (H + 200)) - 100; ctx.fillRect(0, y, W, 26 + 10 * i); }
+  ctx.globalAlpha = 0.25 * k; ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 70; i++) { const x = rnd(i + Math.floor(t * 30) * 7) * W, y = rnd(i * 3 + Math.floor(t * 30)) * H; ctx.fillRect(x, y, 2, 18); }
+  ctx.globalAlpha = k;
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = 'rgba(20,24,36,.55)'; ctx.lineWidth = 8; ctx.lineJoin = 'round';
+  for (const dx of [-38, 38]) { ctx.beginPath(); ctx.moveTo(540 + dx + 40, 270); ctx.lineTo(540 + dx - 40, 320); ctx.lineTo(540 + dx + 40, 370); ctx.closePath(); ctx.stroke(); ctx.fill(); }
+  const pk = 1 - P(t, r.a + 0.35, 0.2);
+  if (pk > 0) {
+    ctx.globalAlpha = k * pk; ctx.fillStyle = 'rgba(20,24,36,.55)'; circ(540, 900, 100); ctx.fill();
+    ctx.fillStyle = '#ffffff'; rr(500, 845, 26, 110, 8); ctx.fill(); rr(554, 845, 26, 110, 8); ctx.fill();
+  }
+  ctx.restore();
+}
 function otisCard(t) {
   const k = EZ.back(P(t, C.otis0, 0.45)), outp = P(t, C.otis1 - 0.3, 0.3);
   ctx.save(); ctx.translate(790, 560); ctx.rotate(0.07 - 0.3 * (1 - k)); ctx.scale(k, k); ctx.globalAlpha = 1 - outp;
@@ -1518,12 +1570,15 @@ function setup(tl) {
   for (const l of tl.lines) LN[l.id] = l;
   computeCues();
   buildCaptions();
+  buildWords();
   buildEnvironment();
   for (let i = 0; i < NF; i++) buildFloor(i);
   buildMachineRoom();
   buildCabin(); buildDrumPhase(); buildPulley(); buildBrake(); buildCounterweight(); buildRails();
   buildGovernor(); buildLatch(); buildCurtain(); buildRopes(); buildVisitor(); buildParticles();
-  buildHost();
+  HOST = makeHost(hostScene);
+  HOSTW_PLACE = grp(null, 2.3, 0.06 + 1.5 * 0.9, 4.3); HOSTW_PLACE.scale.setScalar(0.9);
+  HOSTW = makeHost(HOSTW_PLACE);
 }
 const PIX = new Uint8Array(GW * GH * 4), FLIP = new Uint8ClampedArray(GW * GH * 4), IMG = new ImageData(FLIP, GW, GH);
 const TMP = document.createElement('canvas'); TMP.width = GW; TMP.height = GH;
@@ -1532,9 +1587,15 @@ const PROF = {};
 const tick = (k, t0) => { PROF[k] = (PROF[k] || 0) + performance.now() - t0; return performance.now(); };
 function draw(t) {
   let t0 = performance.now();
-  updateWorld(t);
+  const wt = worldTime(t);
+  updateWorld(wt);
   updateCamera(t);
-  updateHost(t);
+  const inWorld = t >= C.hostWorld;
+  HOSTW_PLACE.visible = inWorld;
+  if (inWorld) {
+    updateHost(t, HOSTW);
+    HOSTW_PLACE.rotation.y = Math.atan2(camera.position.x - HOSTW_PLACE.position.x, camera.position.z - HOSTW_PLACE.position.z);
+  } else updateHost(t, HOST);
   t0 = tick('update', t0);
   renderer.setScissorTest(false);
   renderer.setViewport(0, 0, GW, GH);
@@ -1542,16 +1603,18 @@ function draw(t) {
   renderer.render(scene, camera);
   renderer.getContext().finish();
   t0 = tick('scene', t0);
-  renderer.autoClear = false;
-  renderer.clearDepth();
-  renderer.setViewport(0, 0, HV.w * RS, HV.h * RS);
-  renderer.setScissor(0, 0, HV.w * RS, HV.h * RS); renderer.setScissorTest(true);
-  renderer.render(hostScene, hostCam);
-  renderer.setScissorTest(false);
+  if (!inWorld) {
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.setViewport(0, 0, HV.w * RS, HV.h * RS);
+    renderer.setScissor(0, 0, HV.w * RS, HV.h * RS); renderer.setScissorTest(true);
+    renderer.render(hostScene, hostCam);
+    renderer.setScissorTest(false);
+  }
   renderer.getContext().finish();
   t0 = tick('host', t0);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
-  ctx.filter = (t >= C.s1frz && t < C.s1rwS) ? 'grayscale(0.85) contrast(1.05)' : 'none';
+  ctx.filter = (t >= C.s1frz && t < C.s1rwS) ? 'grayscale(0.85) contrast(1.05)' : inRewind(t) ? 'saturate(0.55) contrast(1.08) brightness(1.06)' : 'none';
   // copiar via readPixels é muito mais rápido que drawImage(canvas WebGL) sem GPU
   const gl = renderer.getContext();
   if (Q.get("tiny")) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PIX); else gl.readPixels(0, 0, GW, GH, gl.RGBA, gl.UNSIGNED_BYTE, PIX);
@@ -1563,7 +1626,7 @@ function draw(t) {
   ctx.filter = 'none';
   ctx.getImageData(0, 0, 1, 1);
   t0 = tick('drawImage', t0);
-  const dk = dark(t);
+  const dk = dark(wt);
   if (dk > 0) { ctx.fillStyle = `rgba(12,18,45,${0.35 * dk})`; ctx.fillRect(0, 0, W, H - HV.h); }
   drawArrows(t);
   drawLabels(t);
@@ -1578,4 +1641,42 @@ function draw(t) {
 }
 window.setup = setup; window.draw = draw; window.sfxEvents = () => SFX;
 window.prof = () => PROF;
+// Verificador: acha pares de faces no mesmo plano (z-fighting) entre caixas e planos visíveis
+window.checkOverlaps = t => {
+  draw(t);
+  scene.updateMatrixWorld(true);
+  const items = [], q = new THREE.Quaternion(), mtx = new THREE.Matrix4();
+  scene.traverseVisible(o => {
+    if (!o.isMesh) return;
+    const isBox = o.geometry === GEO.box, isPlane = o.geometry.type === 'PlaneGeometry';
+    if (!isBox && !isPlane) return;
+    if (o.material.transparent && o.material.opacity < 0.5) return;
+    o.getWorldQuaternion(q); const e = mtx.makeRotationFromQuaternion(q).elements;
+    for (const i of [0, 1, 2, 4, 5, 6, 8, 9, 10]) { const v = Math.abs(e[i]); if (v > 1e-3 && Math.abs(v - 1) > 1e-3) return; }
+    const b = new THREE.Box3().setFromObject(o);
+    let faces;
+    if (isBox) faces = [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]];
+    else { const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q); const ax = [0, 1, 2].find(k => Math.abs(n.getComponent(k)) > 0.9); faces = [[ax, Math.sign(n.getComponent(ax))]]; }
+    const c = new THREE.Vector3(); b.getCenter(c); const sz = new THREE.Vector3(); b.getSize(sz);
+    items.push({ b, faces, desc: `${o.material.color ? '#' + o.material.color.getHexString() : ''} c=(${c.x.toFixed(2)},${c.y.toFixed(2)},${c.z.toFixed(2)}) s=(${sz.x.toFixed(2)},${sz.y.toFixed(2)},${sz.z.toFixed(2)})` });
+  });
+  const C3 = ['x', 'y', 'z'], outl = [];
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const A = items[i], B = items[j];
+    if (!A.b.intersectsBox(B.b)) continue;
+    for (const [ax, sg] of A.faces) {
+      if (!B.faces.some(f => f[0] === ax && f[1] === sg)) continue;
+      const k = C3[ax];
+      const fa = sg > 0 ? A.b.max[k] : A.b.min[k], fb = sg > 0 ? B.b.max[k] : B.b.min[k];
+      if (Math.abs(fa - fb) > 1e-3) continue;
+      let area = true;
+      for (const o of [0, 1, 2]) {
+        if (o === ax) continue; const ko = C3[o];
+        if (Math.min(A.b.max[ko], B.b.max[ko]) - Math.max(A.b.min[ko], B.b.min[ko]) < 2e-3) area = false;
+      }
+      if (area) outl.push(`face ${sg > 0 ? '+' : '-'}${k} em ${fa.toFixed(3)} | ${A.desc} | ${B.desc}`);
+    }
+  }
+  return { n: items.length, pairs: outl };
+};
 window.sceneReady = true;

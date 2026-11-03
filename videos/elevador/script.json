@@ -2,10 +2,11 @@
   "title": "Elevador",
   "engine": "chatterbox",
   "chatterbox": {
-    "ref": "ref_faber.wav",
+    "ref": "ref_cadu.wav",
     "exaggeration": 0.6,
     "cfg": 0.3
   },
+  "voicePitch": 1.0,
   "voice": "pt_BR-faber-medium",
   "lengthScale": 0.97,
   "gapLine": 0.1,
@@ -26,7 +27,8 @@
         },
         {
           "id": "h3",
-          "text": "Porque ele tem que levantar sozinho o peso da cabine e de todo mundo lá dentro."
+          "text": "Porque ele tem que levantar sozinho o peso da cabine e de todo mundo lá dentro.",
+          "pad": 1.2
         }
       ]
     },
@@ -64,7 +66,7 @@
         {
           "id": "g1",
           "text": "Mas uma caixa pendurada balança, gira e vai batendo nas paredes do poço.",
-          "pad": 0.5
+          "pad": 1.3
         },
         {
           "id": "g2",
@@ -83,7 +85,7 @@
         {
           "id": "k1",
           "text": "Mas tudo depende de uma corda só. Se ela arrebenta, a cabine despenca.",
-          "pad": 1.4
+          "pad": 1.5
         },
         {
           "id": "k2",
@@ -103,7 +105,7 @@
         {
           "id": "f1",
           "text": "Mas quando acaba a luz, o motor desliga, e o lado mais pesado desce sozinho.",
-          "pad": 0.5
+          "pad": 1.4
         },
         {
           "id": "f2",
@@ -147,7 +149,7 @@
         {
           "id": "p1",
           "text": "Mas alguém abre a porta do andar com o elevador lá em cima, e quase pisa no vazio.",
-          "pad": 0.6
+          "pad": 1.5
         },
         {
           "id": "p2",
@@ -166,7 +168,7 @@
         {
           "id": "r1",
           "text": "Mas a porta fecha em cima de quem está entrando.",
-          "pad": 0.7
+          "pad": 1.3
         },
         {
           "id": "r2",
