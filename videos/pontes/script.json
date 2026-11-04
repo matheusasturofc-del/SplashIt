@@ -1,6 +1,9 @@
 {
   "title": "Pontes",
-  "header": ["COMO CONSTRUIR UMA ", "PONTE"],
+  "header": [
+    "COMO CONSTRUIR UMA ",
+    "PONTE"
+  ],
   "engine": "chatterbox",
   "chatterbox": {
     "ref": "ref_faber.wav",
@@ -16,63 +19,138 @@
     {
       "id": "hook",
       "lines": [
-        { "id": "h1", "text": "Se você atravessar um rio colocando uma tábua comprida de uma margem à outra,", "pad": 0.2 },
-        { "id": "h2", "text": "você não vai ter uma ponte. Vai ter um trampolim.", "pad": 1.4 }
+        {
+          "id": "h1",
+          "text": "Se você atravessar um rio colocando uma tábua comprida de uma margem à outra,",
+          "pad": 0.2
+        },
+        {
+          "id": "h2",
+          "text": "você não vai ter uma ponte. Vai ter um trampolim.",
+          "pad": 1.2
+        }
       ]
     },
     {
       "id": "viga",
       "lines": [
-        { "id": "v1", "text": "Então você apoia a tábua em pilares no meio do rio. Essa é a ponte em viga, a mais simples de todas.", "hl": "viga" },
-        { "id": "v2", "text": "Mas uma viga de pedra é frágil: quando passa peso, ela racha no meio.", "pad": 1.4 }
+        {
+          "id": "v1",
+          "text": "Então você troca a tábua por uma viga grossa de concreto. Essa é a viga.",
+          "hl": "viga"
+        },
+        {
+          "id": "v2",
+          "text": "Mas num vão tão grande ela enverga, e quando passa um caminhão, racha no meio.",
+          "pad": 1.2
+        }
       ]
     },
     {
-      "id": "arco",
+      "id": "pilares",
       "lines": [
-        { "id": "a1", "text": "Então os romanos encaixam as pedras em curva, uma empurrando a outra, travadas por uma pedra no topo." },
-        { "id": "a2", "text": "Esse é o arco. É por isso que pontes romanas estão de pé há quase dois mil anos.", "hl": "arco" },
-        { "id": "a3", "text": "Mas o arco precisa de muitos pilares, e no rio largo os barcos não passam.", "pad": 1.4 }
+        {
+          "id": "p1",
+          "text": "Então você apoia a viga em colunas dentro do rio, pra ela não ficar solta. Esses são os pilares.",
+          "hl": "pilares"
+        },
+        {
+          "id": "p2",
+          "text": "Mas a correnteza vai levando a areia em volta deles, até o pilar afundar e tombar.",
+          "pad": 1.2
+        }
       ]
     },
     {
-      "id": "trelica",
+      "id": "fundacao",
       "lines": [
-        { "id": "t1", "text": "Então, com a chegada do ferro, você monta a ponte com barras formando triângulos, que não se deformam." },
-        { "id": "t2", "text": "Essa é a treliça. É por isso que as pontes de trem são cheias de triângulos.", "hl": "treliça" },
-        { "id": "t3", "text": "Mas tem rio largo demais até para a treliça.", "pad": 1.4 }
+        {
+          "id": "d1",
+          "text": "Então, embaixo de cada pilar, você crava estacas compridas que atravessam a areia até a rocha. Essa é a fundação.",
+          "hl": "fundação"
+        },
+        {
+          "id": "d2",
+          "text": "Mas os pilares fecham o rio, e um navio grande bate em cheio neles.",
+          "pad": 1.2
+        }
       ]
     },
     {
       "id": "pensil",
       "lines": [
-        { "id": "s1", "text": "Então você levanta duas torres e pendura a pista em cabos de aço, presos em blocos gigantes nas margens." },
-        { "id": "s2", "text": "Essa é a ponte pênsil, como a Golden Gate.", "say": "Essa é a ponte pênsil, como a Gólden Guêit.", "hl": "pênsil" }
+        {
+          "id": "s1",
+          "text": "Então você tira os pilares da água, levanta uma torre em cada margem e pendura a pista em cabos de aço. Essa é a ponte pênsil.",
+          "hl": "pênsil"
+        },
+        {
+          "id": "s2",
+          "text": "Mas o peso da pista puxa os cabos, e os cabos puxam as torres pra dentro até elas caírem.",
+          "pad": 1.2
+        }
       ]
     },
     {
-      "id": "tacoma",
+      "id": "ancoragem",
       "lines": [
-        { "id": "k1", "text": "Mas em 1940, nos Estados Unidos, o vento fez a ponte de Tacoma balançar até cair.", "say": "Mas em mil novecentos e quarenta, nos Estados Unidos, o vento fez a ponte de Tacôma balançar até cair.", "pad": 1.6 },
-        { "id": "k2", "text": "Então os engenheiros passam a testar as pontes em túneis de vento, e deixam a pista mais rígida, com formato aerodinâmico." },
-        { "id": "k3", "text": "É por isso que a Ponte Rio–Niterói ganhou amortecedores contra o vento.", "say": "É por isso que a Ponte Rio Niterói ganhou amortecedores contra o vento.", "hl": "amortecedores" }
+        {
+          "id": "n1",
+          "text": "Então você passa os cabos por cima das torres e amarra as pontas em blocos gigantes de concreto enterrados na margem. Essa é a ancoragem.",
+          "hl": "ancoragem"
+        },
+        {
+          "id": "n2",
+          "text": "Mas foi assim que, em 1940, o vento fez a ponte de Tacoma, nos Estados Unidos, torcer até se partir.",
+          "say": "Mas foi assim que, em mil novecentos e quarenta, o vento fez a ponte de Tacôma, nos Estados Unidos, torcer até se partir.",
+          "pad": 1.4
+        }
       ]
     },
     {
-      "id": "estaiada",
+      "id": "trelica",
       "lines": [
-        { "id": "e1", "text": "Mas a ponte pênsil é cara e demorada: precisa daqueles blocos gigantes nas margens.", "pad": 1.4 },
-        { "id": "e2", "text": "Então você prende a pista direto nas torres, com cabos retos em forma de leque." },
-        { "id": "e3", "text": "Essa é a ponte estaiada. Ela é montada aos pedaços, a partir da torre, e gasta menos aço.", "hl": "estaiada" },
-        { "id": "e4", "text": "É por isso que é o tipo de ponte grande mais construído hoje, como a Octávio Frias, em São Paulo.", "say": "É por isso que é o tipo de ponte grande mais construído hoje, como a Octávio Frias, em São Paulo." }
+        {
+          "id": "t1",
+          "text": "Então você reforça a pista com uma grade de aço em triângulos, que deixa ela rígida e deixa o vento passar. Essa é a treliça.",
+          "hl": "treliça"
+        }
+      ]
+    },
+    {
+      "id": "junta",
+      "lines": [
+        {
+          "id": "j1",
+          "text": "Mas o aço estica no calor, e a pista empurra as margens até entortar.",
+          "pad": 1.2
+        },
+        {
+          "id": "j2",
+          "text": "Então, nas pontas, você deixa uma folga com dentes de aço que abrem e fecham. Essa é a junta de dilatação.",
+          "hl": "junta dilatação"
+        },
+        {
+          "id": "j3",
+          "text": "É por isso que o carro faz tuque-tuque quando passa numa ponte.",
+          "say": "É por isso que o carro faz tuque tuque quando passa numa ponte."
+        }
       ]
     },
     {
       "id": "final",
       "lines": [
-        { "id": "f1", "text": "Coloque o asfalto, a iluminação e os carros passando." },
-        { "id": "f2", "text": "Obra entregue: você construiu uma ponte.", "hl": "Obra entregue", "pad": 0.4 },
-        { "id": "f3", "text": "Comenta aqui qual obra eu construo no próximo vídeo.", "pad": 1.2 }
+        {
+          "id": "o1",
+          "text": "Obra entregue: você construiu uma ponte.",
+          "hl": "Obra entregue",
+          "pad": 0.4
+        },
+        {
+          "id": "o2",
+          "text": "Comenta aqui qual obra eu construo no próximo vídeo.",
+          "pad": 1.2
+        }
       ]
     }
   ]

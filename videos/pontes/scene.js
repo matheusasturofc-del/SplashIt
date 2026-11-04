@@ -42,16 +42,24 @@ function st(p, i, n, span = 0.45) { if (n <= 1) return p; return cl((p - i * (1 
 
 // ================================================================ medidas do mundo (1 unidade ≈ 1 metro de maquete)
 const BANK_Y = 2.0;          // altura das margens = altura da pista
-const GAP0 = 15, GAP1 = 25;  // meia largura do rio: normal e "rio largo"
-const BED = -3;              // fundo do rio
-const ERAS = [
-  { id: 'inicio', label: 'NO COMEÇO' },
-  { id: 'roma', label: 'ROMA ANTIGA' },
-  { id: 'ferro', label: 'SÉCULO 19 · FERRO' },
-  { id: 'pensil', label: 'ANOS 1930' },
-  { id: 'tacoma', label: '1940 · TACOMA, EUA' },
-  { id: 'hoje', label: 'HOJE' },
-];
+const GAP = 15;              // meia largura do rio junto da ponte
+const BED = -3;              // fundo do rio (areia)
+const ROCK = -7.5;           // topo da rocha
+const ERAS = [];
+// rio sinuoso: reto perto da ponte, curvas longe dela
+const smooth01 = (x, a, b) => { const k = cl((x - a) / (b - a)); return k * k * (3 - 2 * k); };
+const riverC = z => smooth01(Math.abs(z), 12, 40) * (4.5 * Math.sin(z * 0.045 + 0.4) + 2 * Math.sin(z * 0.11));
+const riverW = z => GAP + smooth01(Math.abs(z), 12, 40) * 2.2 * Math.sin(z * 0.13 + 1.3);
+function groundY(x, z) {
+  const d = Math.abs(x - riverC(z)) - riverW(z);   // < 0 dentro do rio
+  if (d < -2.4) return BED;
+  if (d < -1.4) return lerp(BED, 0.25, (d + 2.4));          // fundo subindo até a prainha
+  if (d < -0.9) return 0.25;                                 // faixa de areia
+  if (d < 0) return lerp(0.25, BANK_Y, (d + 0.9) / 0.9);     // barranco de terra
+  const hill = smooth01(d, 14, 34) * smooth01(Math.abs(z), 6, 16) * (3 + 3 * Math.sin(x * 0.06 + z * 0.04) * Math.cos(z * 0.07 + 0.5));
+  const bump = smooth01(d, 2, 6) * smooth01(Math.abs(z), 5, 9) * 0.18 * Math.sin(x * 0.9 + z * 1.3) * Math.cos(x * 0.7 - z * 0.5);
+  return BANK_Y + hill + bump;
+}
 
 // ================================================================ linha do tempo
 let TL = null;
@@ -90,72 +98,73 @@ function computeCues() {
   // gancho: tábua vira trampolim
   C.plank0 = 0.0; C.slam = 0.25; C.walk0 = 0.4; C.brk = Math.max(2.4, wT('h2', 'trampolim'));
   C.rwH = RW(E('h2') + 0.15, 0.4);
-  // viga sobre pilares
-  C.piers = wT('v1', 'pilares') - 0.25; C.stone = wT('v1', 'viga') - 0.3;
-  C.cart0 = S('v2') + 0.1; C.crack = wT('v2', 'racha');
+  // viga de concreto
+  C.beam0 = S('v1') + 0.15; C.truck0 = S('v2') + 0.1; C.crack = wT('v2', 'racha');
   C.rwV = RW(E('v2') + 0.15, S('v2') - 0.05);
-  // arco romano
-  C.beamOut = S('a1') + 0.05; C.arch0 = S('a1') + 0.35; C.key = wT('a1', 'topo') - 0.2;
-  C.ship0 = S('a3') + 0.1; C.bonk = Math.min(E('a3') - 0.2, wT('a3', 'barcos') + 0.3);
-  C.rwA = RW(E('a3') + 0.15, S('a3') - 0.05);
-  // treliça de ferro
-  C.archOut = S('t1') + 0.05; C.truss0 = wT('t1', 'barras') - 0.3;
-  C.train0 = S('t2') + 0.05; C.train1 = E('t2') + 0.2;
-  C.wide1 = S('t3') + 0.05; C.trussFall = S('t3') + 1.0;
-  C.rwT = RW(E('t3') + 0.15, S('t3') - 0.05);
-  // pênsil
-  C.trussOut = S('s1') + 0.05; C.wide2 = S('s1') + 0.1;
-  C.towers = wT('s1', 'torres') - 0.25; C.cables = wT('s1', 'cabos') - 0.25; C.anch = wT('s1', 'blocos') - 0.3;
-  C.deckS = C.cables + 0.6;
-  // Tacoma
-  C.wind = S('k1') + 0.2; C.fall = wT('k1', 'cair');
-  C.rwK = RW(E('k1') + 0.15, S('k1') - 0.05);
-  C.tunnel = wT('k2', 'túneis') - 0.2; C.stiff = wT('k2', 'rígida') - 0.3;
-  C.damp = wT('k3', 'amortecedores') - 0.3;
-  // estaiada
-  C.cost = S('e1') + 0.15;
-  C.rwE = RW(E('e1') + 0.15, S('e1') - 0.05);
-  C.suspOut = S('e2') + 0.05; C.pylons = S('e2') + 0.35; C.cant0 = wT('e2', 'cabos') - 0.3; C.cant1 = wT('e3', 'aço');
-  C.card = wT('e4', 'octávio') - 0.3;
+  // pilares e erosão
+  C.piers = wT('p1', 'colunas') - 0.3; C.scour0 = S('p2') + 0.2; C.sink = wT('p2', 'afundar') - 0.2;
+  C.rwP = RW(E('p2') + 0.15, S('p2') - 0.05);
+  // fundação (raio-x) e navio
+  C.xray0 = S('d1') + 0.1; C.piles = wT('d1', 'crava') - 0.1; C.rock = wT('d1', 'rocha'); C.xray1 = E('d1') + 0.2;
+  C.ship0 = S('d2') + 0.05; C.bonk = Math.min(E('d2') - 0.3, wT('d2', 'bate') + 0.2);
+  C.rwD = RW(E('d2') + 0.15, S('d2') - 0.05);
+  // pênsil sem ancoragem
+  C.beamOut = S('s1') + 0.05; C.towers = wT('s1', 'torre') - 0.3; C.cables = wT('s1', 'pendura') - 0.4; C.deckS = wT('s1', 'cabos') - 0.2;
+  C.tip0 = wT('s2', 'puxam') - 0.2; C.fall0 = wT('s2', 'caírem') - 0.3;
+  C.rwS = RW(E('s2') + 0.15, S('s2') - 0.05);
+  // ancoragem e Tacoma
+  C.cable2 = wT('n1', 'passa') - 0.2; C.anch = wT('n1', 'blocos') - 0.3;
+  C.wind = S('n2') + 0.2; C.fall = wT('n2', 'partir') - 0.2;
+  C.rwN = RW(E('n2') + 0.15, S('n2') - 0.05);
+  // treliça
+  C.truss0 = wT('t1', 'grade') - 0.3; C.windOK = wT('t1', 'vento') - 0.4;
+  // junta de dilatação
+  C.heat = S('j1') + 0.1; C.buckle = wT('j1', 'empurra');
+  C.rwJ = RW(E('j1') + 0.15, S('j1') - 0.05);
+  C.joint0 = wT('j2', 'folga') - 0.3; C.teeth = wT('j2', 'dentes') - 0.2;
+  C.tuque = wT('j3', 'tuque'); C.car0 = C.tuque - (25 - 15.55) / 6;
   // final
-  C.asphalt = wT('f1', 'asfalto') - 0.2; C.lamps = wT('f1', 'iluminação') - 0.2; C.cars = wT('f1', 'carros') - 0.3;
-  C.hostWorld = S('f2') - 0.3; C.stamp = S('f2') + 0.25; C.cta = S('f3') - 0.1;
-  C.eraKeys = [[0, 0], [S('a1') - 0.3, 1], [S('t1') - 0.3, 2], [S('s1') - 0.3, 3], [S('k1') - 0.3, 4], [S('e2') - 0.3, 5]];
+  C.cars = S('o1') - 0.6; C.hostWorld = S('o1') - 0.3; C.stamp = S('o1') + 0.25; C.cta = S('o2') - 0.1;
+  C.eraKeys = [[0, 0]];
 
-  // ---------- câmera
+  // ---------- câmera [alvo x, y, z, distância, azimute, elevação, fov]
   const CK = [];
   CK.push([0, [0, 6.0, 0, 44, 1.35, 0.55, 40]], [0.55, [-3, 2.6, 0, 19, 1.2, 0.3, 40], 'o'], [C.brk - 0.4, [-1, 2.4, 0, 17, 1.05, 0.26, 40]], [C.rwH.b, [-1, 2.2, 0, 18, 1.0, 0.24, 40]]);
-  CK.push([C.piers + 0.6, [0, 1.0, 0, 34, 0.72, 0.2, 40]], [E('v1'), [0, 1.0, 0, 33, 0.9, 0.18, 40]]);
-  CK.push([C.cart0 + 0.3, [-3.75, 2.0, 0, 15, 0.7, 0.22, 40]], [C.rwV.b, [-3.75, 2.0, 0, 15, 0.8, 0.2, 40]]);
-  CK.push([C.arch0 + 0.4, [0, 0, 0, 46, 0.25, 0.16, 40]], [E('a2'), [0, 0, 0, 44, 0.4, 0.18, 40]]);
-  CK.push([C.ship0 + 0.4, [0, 1.5, 6, 24, 0.3, 0.22, 40]], [C.rwA.b, [0, 1.5, 6, 24, 0.4, 0.22, 40]]);
-  CK.push([C.truss0 + 0.5, [0, 3.5, 0, 42, 0.45, 0.2, 40]], [C.train0 + 0.2, [0, 3.0, 0, 30, 0.95, 0.12, 40]], [E('t2'), [0, 3.0, 0, 30, 1.05, 0.12, 40]]);
-  CK.push([C.wide1 + 0.4, [0, 3.0, 0, 52, 0.7, 0.2, 40]], [C.rwT.b, [0, 3.0, 0, 52, 0.75, 0.2, 40]]);
-  CK.push([C.towers + 0.6, [0, 8.0, 0, 66, 0.72, 0.18, 40]], [E('s2'), [0, 8.0, 0, 64, 0.95, 0.16, 40]]);
-  CK.push([C.wind + 0.3, [0, 4.0, 0, 50, 0.9, 0.12, 40]], [C.rwK.b, [0, 4.0, 0, 50, 0.95, 0.12, 40]]);
-  CK.push([C.tunnel + 0.3, [0, 3.0, 0, 26, 0.62, 0.02, 40]], [E('k3'), [0, 2.5, 0, 22, 0.35, -0.04, 40]]);
-  CK.push([C.cost + 0.3, [32, 5, 0, 26, 0.55, 0.2, 40]], [C.rwE.b, [32, 5, 0, 26, 0.65, 0.2, 40]]);
-  CK.push([C.pylons + 0.6, [0, 9, 0, 66, 0.8, 0.17, 40]], [C.cant1, [0, 9, 0, 62, 0.55, 0.16, 40]], [E('e4'), [0, 9, 0, 60, 0.4, 0.15, 40]]);
-  CK.push([C.cars + 0.3, [-6, 3, 0, 28, 0.92, 0.1, 40]], [C.hostWorld, [-6, 3, 0, 28, 1.0, 0.1, 40]]);
+  CK.push([C.beam0 + 0.6, [0, 1.5, 0, 36, 0.85, 0.22, 40]], [E('v1'), [0, 1.5, 0, 34, 0.95, 0.2, 40]]);
+  CK.push([C.truck0 + 0.4, [-4, 2.5, 0, 24, 0.75, 0.2, 40]], [C.crack, [0, 2, 0, 22, 0.6, 0.18, 40]], [C.rwV.b, [0, 2, 0, 22, 0.6, 0.18, 40]]);
+  CK.push([C.piers + 0.6, [0, 0.5, 0, 38, 0.5, 0.16, 40]], [E('p1'), [0, 0.5, 0, 36, 0.6, 0.16, 40]]);
+  CK.push([C.scour0 + 0.4, [0, 0, 0, 30, 0.35, 0.28, 40]], [C.rwP.b, [0, 0, 0, 30, 0.4, 0.28, 40]]);
+  CK.push([C.xray0 + 0.5, [0, -3.5, 0, 40, 0.2, 0.13, 40]], [C.xray1, [0, -3.5, 0, 38, 0.35, 0.13, 40]]);
+  CK.push([C.ship0 + 0.5, [0, 2, -4, 32, 0.45, 0.2, 40]], [C.bonk, [0, 2, -2, 24, 0.5, 0.2, 40]], [C.rwD.b, [0, 2, -2, 24, 0.55, 0.2, 40]]);
+  CK.push([C.towers + 0.7, [0, 9, 0, 64, 0.75, 0.18, 40]], [E('s1'), [0, 9, 0, 62, 0.9, 0.17, 40]]);
+  CK.push([C.tip0, [0, 8, 0, 60, 0.7, 0.2, 40]], [C.rwS.b, [0, 8, 0, 60, 0.7, 0.2, 40]]);
+  CK.push([C.cable2 + 0.5, [0, 8, 0, 82, 1.0, 0.2, 40]], [C.anch + 0.6, [24, 5, 0, 30, 0.75, 0.22, 40]], [E('n1'), [24, 5, 0, 30, 0.85, 0.22, 40]]);
+  CK.push([C.wind + 0.4, [0, 5, 0, 56, 0.85, 0.15, 40]], [C.rwN.b, [0, 5, 0, 56, 0.9, 0.15, 40]]);
+  CK.push([C.truss0 + 0.5, [0, 3, 0, 26, 0.5, 0.14, 40]], [E('t1'), [0, 3, 0, 32, 0.7, 0.16, 40]]);
+  CK.push([C.heat + 0.5, [0, 3, 0, 36, 0.22, 0.1, 40]], [C.rwJ.b, [0, 3, 0, 36, 0.25, 0.1, 40]]);
+  CK.push([C.joint0 + 0.5, [15.1, 2.1, 0.3, 8, -0.45, 0.55, 40]], [C.car0, [15.3, 2.2, 0.5, 9, -0.6, 0.42, 40]], [E('j3'), [15.3, 2.2, 0.5, 9.5, -0.7, 0.4, 40]]);
+  CK.push([C.cars + 0.4, [0, 4, 0, 40, 0.95, 0.14, 40]], [C.hostWorld, [0, 4, 0, 40, 1.0, 0.14, 40]]);
   CK.push([C.hostWorld + 0.9, [14, 9, 0, 50, 1.15, 0.12, 42]], [TL.duration, [14, 9, 0, 51, 1.22, 0.14, 42]]);
   C.camKeys = sortK(CK);
 
-  C.shakes = [[C.slam, 0.35], [C.brk, 0.15], [C.crack, 0.15], [C.bonk, 0.2], [C.trussFall + 0.8, 0.3], [C.fall + 0.8, 0.4], [C.stamp + 0.18, 0.25]];
+  C.shakes = [[C.slam, 0.35], [C.brk, 0.15], [C.crack, 0.2], [C.sink + 0.5, 0.2], [C.bonk, 0.3], [C.fall0 + 0.9, 0.35], [C.fall + 0.8, 0.4], [C.buckle + 0.6, 0.2], [C.stamp + 0.18, 0.25]];
 
   // ---------- reações do mestre de obras
   const Rx = (t, d, e, p, b) => REACT.push({ t, d, e, p, b });
   Rx(C.brk - 0.2, C.rwH.a - C.brk + 0.2, 'shock', 'up', 'Splash!');
   Rx(E('v1') - 1.0, 1.0, 'happy', 'thumbs', null);
   Rx(C.crack, C.rwV.a - C.crack, 'shock', 'cheeks', 'Crack!');
-  Rx(E('a2') - 1.0, 1.0, 'happy', 'thumbs', null);
-  Rx(C.bonk, C.rwA.a - C.bonk, 'wince', 'cheeks', 'Ai!');
-  Rx(E('t2') - 1.0, 1.0, 'happy', 'thumbs', null);
-  Rx(C.trussFall, C.rwT.a - C.trussFall, 'shock', 'up', 'Não!');
-  Rx(E('s2') - 0.8, 1.0, 'happy', 'thumbs', null);
-  Rx(C.wind + 0.6, C.rwK.a - C.wind - 0.6, 'shock', 'cheeks', 'Tá dançando!');
-  Rx(E('k3') - 1.0, 1.0, 'relieved', 'wipe', 'Ufa!');
-  Rx(C.cost + 0.4, C.rwE.a - C.cost - 0.4, 'worried', 'wipe', 'Que caro!');
-  Rx(E('e3') - 1.0, 1.0, 'happy', 'thumbs', null);
+  Rx(E('p1') - 1.0, 1.0, 'happy', 'thumbs', null);
+  Rx(C.sink, C.rwP.a - C.sink, 'shock', 'up', 'Afundou!');
+  Rx(E('d1') - 1.0, 1.0, 'happy', 'thumbs', null);
+  Rx(C.bonk, C.rwD.a - C.bonk, 'wince', 'cheeks', 'Ai!');
+  Rx(E('s1') - 1.0, 1.0, 'happy', 'thumbs', null);
+  Rx(C.fall0, C.rwS.a - C.fall0, 'shock', 'up', 'Não!');
+  Rx(E('n1') - 1.0, 1.0, 'happy', 'thumbs', null);
+  Rx(C.wind + 0.6, C.rwN.a - C.wind - 0.6, 'shock', 'cheeks', 'Tá dançando!');
+  Rx(E('t1') - 1.0, 1.0, 'relieved', 'wipe', 'Ufa!');
+  Rx(C.buckle, C.rwJ.a - C.buckle, 'worried', 'wipe', 'Que calor!');
+  Rx(C.tuque - 0.1, 1.2, 'happy', 'point', 'Tuque tuque!');
   Rx(C.stamp + 0.15, 2.4, 'happy', 'cheer', 'Uhuul!');
   Rx(C.cta, TL.duration - C.cta, 'happy', 'point', null);
   for (const r of C.REW) Rx(r.a, r.b - r.a, 'worried', 'point', 'Volta!');
@@ -164,45 +173,48 @@ function computeCues() {
   // ---------- etiquetas
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   const Lb = (txt, t0, t1, at, off) => { LABELS.push({ txt, t0, t1, at, off }); CHIPS.push({ txt, t: t0 }); };
-  Lb('VIGA', wT('v1', 'viga'), E('v1') + 0.3, () => V(-3.75, 1.8, 1.2), [-60, -260]);
-  Lb('ARCO', wT('a2', 'arco'), E('a2') + 0.3, () => V(-3.75, 1.2, 1.2), [-40, -300]);
-  Lb('TRELIÇA', wT('t2', 'treliça'), E('t2') + 0.3, () => V(-4, 5.0, 1.3), [-40, -260]);
-  Lb('PÊNSIL', wT('s2', 'pênsil'), E('s2') + 0.3, () => V(-8, 11, 1.5), [-60, -260]);
-  Lb('AMORTECEDORES', wT('k3', 'amortecedores'), E('k3') + 0.3, () => V(0, 1.2, 0), [200, -330]);
-  Lb('ESTAIADA', wT('e3', 'estaiada'), E('e4') + 0.2, () => V(-12, 15, 0), [80, -260]);
+  Lb('VIGA', wT('v1', 'viga'), E('v1') + 0.3, () => V(-5, 1.6, 1.1), [-40, -280]);
+  Lb('PILARES', wT('p1', 'pilares'), E('p1') + 0.3, () => V(-7.5, -0.5, 1.2), [-20, -330]);
+  Lb('FUNDAÇÃO', wT('d1', 'fundação'), E('d1') + 0.3, () => V(-0.45, ROCK + 0.3, 0.6), [80, -380]);
+  Lb('PÊNSIL', wT('s1', 'pênsil'), E('s1') + 0.3, () => V(-8, 9.5, 2.6), [-40, -260]);
+  Lb('ANCORAGEM', wT('n1', 'ancoragem'), E('n1') + 0.3, () => V(28, BANK_Y + 2.2, 3.4), [-60, -300]);
+  Lb('TRELIÇA', wT('t1', 'treliça'), E('t1') + 0.3, () => V(-3, 2.7, 2.3), [-40, -300]);
+  Lb('JUNTA DE DILATAÇÃO', wT('j2', 'junta'), E('j2') + 0.4, () => V(15, BANK_Y + 0.05, 1.0), [-60, -330]);
 
   // ---------- setas
   const Ar = (t0, t1, at, dir, len, col, kind = 'line') => ARROWS.push({ t0, t1, at, dir: new THREE.Vector3(...dir), len, col, kind });
   const RED = '#ff4d3d', BLUE = '#4d9bff', YEL = '#ffd23f', GREEN = '#2ecc71';
   Ar(C.walk0 + 0.8, C.brk, () => V(0, 4.2, 0), [0, -1, 0], 1.5, RED);
-  Ar(C.cart0 + 0.5, C.crack, () => V(-3.75, 4.5, 0), [0, -1, 0], 1.5, RED);
-  Ar(C.key - 0.1, C.key + 1.2, () => V(-11.25, 4.4, 1.2), [0, -1, 0], 1.6, YEL);
-  Ar(wT('a1', 'empurrando') - 0.2, C.key, () => V(-13.2, 0.6, 1.3), [1, 0.6, 0], 1.6, GREEN);
-  Ar(wT('a1', 'empurrando') - 0.2, C.key, () => V(-9.3, 0.6, 1.3), [-1, 0.6, 0], 1.6, GREEN);
-  for (const z of [-6, 0, 6]) Ar(C.wind, C.fall, () => V(-30, 4, z), [1, 0, 0], 4, BLUE);
-  Ar(C.cost + 0.3, C.rwE.a, () => V(32, 9.5, 0), [0, -1, 0], 2.5, RED);
-  Ar(C.cant0 + 0.3, C.cant1, () => V(-12, 2.6, 3), [-1, 0, 0], 3, GREEN);
-  Ar(C.cant0 + 0.3, C.cant1, () => V(-12, 2.6, 3), [1, 0, 0], 3, GREEN);
+  Ar(C.truck0 + 0.6, C.crack, () => V(0, 5, 0), [0, -1, 0], 1.6, RED);
+  Ar(C.scour0 + 0.2, C.sink, () => V(0, BED + 0.6, 1.4), [0, 0, 0], 1, YEL, 'spin');
+  for (const x of [-7.5, 0, 7.5]) Ar(C.piles, C.rock + 0.6, () => V(x, -1.2, 1.4), [0, -1, 0], 2.0, GREEN);
+  Ar(C.ship0 + 0.6, C.bonk, () => V(0, 3.5, -9), [0, 0, 1], 3, RED);
+  for (const s of [-1, 1]) Ar(C.tip0, C.fall0 + 0.4, () => V(s * 16, 19, 2.6), [-s, 0, 0], 3, RED);
+  for (const s of [-1, 1]) Ar(C.anch + 0.6, E('n1') + 0.2, () => V(s * 20, 17, 2.6), [s, -0.6, 0], 3, GREEN);
+  for (const z of [-6, 0, 6]) Ar(C.wind, C.fall, () => V(-26, 3, z), [1, 0, 0], 4, BLUE);
+  for (const z of [-4, 4]) Ar(C.windOK, E('t1') + 0.2, () => V(-6, 2.7, z), [0, 0, -Math.sign(z)], 3, BLUE);
+  for (const s of [-1, 1]) Ar(C.heat + 0.6, C.rwJ.a, () => V(s * 12, 3.2, 0), [s, 0, 0], 2.5, RED);
 
   // ---------- efeitos sonoros
   sfx(0.0, 'whoosh', 0.8); sfx(C.slam, 'crash', 0.8); sfx(C.slam + 0.05, 'thud', 0.9);
   for (let k = 0; k < 6; k++) { const tb = C.walk0 + 0.15 + k * Math.max(0.3, (C.brk - C.walk0 - 0.4) / 6); if (tb < C.brk - 0.3) sfx(tb, 'bonk', 0.45 + k * 0.06); }
   sfx(C.brk - 0.5, 'creak', 0.7); sfx(C.brk, 'snap', 1.0); sfx(C.brk + 0.55, 'crash', 0.6);
-  asmSfx(C.piers, 1.0, 3, 'thud', 0.6); sfx(C.stone + 0.3, 'clank', 0.6);
-  sfx(C.cart0, 'slide', 0.4, C.crack - C.cart0); sfx(C.crack - 0.4, 'creak', 0.6); sfx(C.crack, 'snap', 1.0); sfx(C.crack + 0.5, 'crash', 0.6);
-  sfx(C.beamOut, 'whoosh', 0.6); asmSfx(C.arch0, C.key - C.arch0, 10, 'clank', 0.35); sfx(C.key + 0.4, 'clac', 0.9);
-  sfx(C.ship0, 'hum', 0.25, C.bonk - C.ship0); sfx(C.bonk, 'bonk', 1.0);
-  sfx(C.archOut, 'whoosh', 0.6); asmSfx(C.truss0, 2.4, 10, 'clank', 0.4);
-  sfx(C.train0, 'hum', 0.45, C.train1 - C.train0); sfx(C.train0 + 0.2, 'alarm', 0.3);
-  sfx(C.wide1, 'slide', 0.5, 1.0); sfx(C.trussFall, 'creak', 0.7); sfx(C.trussFall + 0.8, 'crash', 1.0);
-  sfx(C.trussOut, 'whoosh', 0.6); sfx(C.towers, 'powerup', 0.4); asmSfx(C.towers, 1.0, 4, 'clank', 0.5);
-  sfx(C.cables, 'zip', 0.6); sfx(C.anch + 0.3, 'thud', 0.8); asmSfx(C.deckS, 2.0, 8, 'clank', 0.35);
-  sfx(C.wind, 'whoosh', 0.7, 0); sfx(C.wind + 0.2, 'strain', 0.4, C.fall - C.wind); sfx(C.fall, 'snap', 1.0); sfx(C.fall + 0.9, 'crash', 1.0);
-  sfx(C.tunnel, 'whoosh', 0.5); asmSfx(C.stiff, 1.2, 6, 'clank', 0.4); asmSfx(C.damp, 0.8, 3, 'pop', 0.5);
-  sfx(C.cost + 0.2, 'alarm', 0.4); asmSfx(C.cost + 0.3, 1.2, 5, 'pop', 0.35);
-  sfx(C.suspOut, 'whoosh', 0.7); sfx(C.pylons, 'powerup', 0.4); asmSfx(C.cant0, C.cant1 - C.cant0, 12, 'clank', 0.32);
-  sfx(C.card, 'pop', 0.6);
-  sfx(C.asphalt, 'slide', 0.4, 0.6); asmSfx(C.lamps, 0.8, 5, 'pop', 0.35); sfx(C.cars, 'hum', 0.3, 3);
+  sfx(C.beam0, 'whoosh', 0.6); asmSfx(C.beam0 + 0.2, 1.0, 6, 'thud', 0.5);
+  sfx(C.truck0, 'hum', 0.4, C.crack - C.truck0); sfx(C.crack - 0.5, 'creak', 0.7); sfx(C.crack, 'snap', 1.0); sfx(C.crack + 0.55, 'crash', 0.7);
+  asmSfx(C.piers, 1.0, 3, 'thud', 0.6);
+  sfx(C.scour0, 'slide', 0.4, C.sink - C.scour0); sfx(C.sink, 'creak', 0.8); sfx(C.sink + 0.6, 'crash', 0.8);
+  sfx(C.xray0, 'powerup', 0.4); asmSfx(C.piles, 1.2, 6, 'clank', 0.5); sfx(C.rock + 0.1, 'clac', 0.8);
+  sfx(C.ship0, 'hum', 0.35, C.bonk - C.ship0); sfx(C.ship0 + 0.4, 'alarm', 0.3); sfx(C.bonk, 'bonk', 1.0); sfx(C.bonk + 0.6, 'crash', 0.8);
+  sfx(C.beamOut, 'whoosh', 0.7); sfx(C.towers, 'powerup', 0.4); asmSfx(C.towers, 1.0, 4, 'clank', 0.5);
+  sfx(C.cables, 'zip', 0.6); asmSfx(C.deckS, 1.4, 8, 'clank', 0.35);
+  sfx(C.tip0, 'strain', 0.5, C.fall0 - C.tip0); sfx(C.fall0, 'creak', 0.8); sfx(C.fall0 + 0.9, 'crash', 1.0);
+  sfx(C.cable2, 'zip', 0.6); sfx(C.anch + 0.3, 'thud', 0.9); sfx(C.anch + 0.55, 'thud', 0.7);
+  sfx(C.wind, 'whoosh', 0.7); sfx(C.wind + 0.2, 'strain', 0.4, C.fall - C.wind); sfx(C.fall, 'snap', 1.0); sfx(C.fall + 0.9, 'crash', 1.0);
+  asmSfx(C.truss0, 1.4, 10, 'clank', 0.35); sfx(C.windOK, 'whoosh', 0.5);
+  sfx(C.heat, 'alarm', 0.3); sfx(C.buckle, 'creak', 0.8); sfx(C.buckle + 0.6, 'snap', 0.8);
+  sfx(C.joint0, 'pop', 0.5); asmSfx(C.teeth - 0.2, 0.6, 4, 'clac', 0.4);
+  sfx(C.car0, 'hum', 0.3, 2.6); sfx(C.tuque, 'thud', 1.0); sfx(C.tuque + 0.01, 'clac', 0.6); sfx(C.tuque + 1.1 / 6, 'thud', 1.0); sfx(C.tuque + 1.1 / 6 + 0.01, 'clac', 0.6);
+  sfx(C.cars, 'hum', 0.3, 3);
   sfx(C.stamp + 0.18, 'stamp', 1.0); sfx(C.stamp + 0.22, 'tada', 0.8); sfx(C.cta, 'pop', 0.6);
   for (const r of C.REW) { sfx(r.a, 'freeze', 0.55); sfx(r.a + 0.08, 'rewind', 0.65, r.b - r.a - 0.1); }
   SFX.sort((a, b) => a.t - b.t);
@@ -225,13 +237,7 @@ function shakeAt(t) {
 }
 const between = (t, a, b) => t >= a && t <= b;
 const dark = () => 0;
-const eraIndex = t => { let k = 0; for (const [a, v] of C.eraKeys) if (t >= a) k = v; return k; };
-// meia largura do rio
-function gapAt(t) {
-  if (t >= C.wide2) return lerp(GAP0, GAP1, EZ.io(P(t, C.wide2, 1.2)));
-  if (between(t, C.wide1, C.rwT.a)) return lerp(GAP0, GAP1, EZ.io(P(t, C.wide1, 1.0)));
-  return GAP0;
-}
+const eraIndex = () => 0;
 
 // ================================================================ three.js: base
 const glc = document.createElement('canvas');
@@ -254,7 +260,7 @@ scene.environmentIntensity = 0.35;
 // reflexos de ambiente dobram o tempo de render sem GPU; só liga com ?env=1
 const ENV = Q.get('env') === '1';
 if (!ENV) scene.environment = null;
-const camera = new THREE.PerspectiveCamera(38, W / H, 0.3, 400);
+const camera = new THREE.PerspectiveCamera(38, W / H, 0.3, 500);
 
 function gradientTex(stops, h = 512) {
   const c = document.createElement('canvas'); c.width = 4; c.height = h;
@@ -365,209 +371,223 @@ function person(shirt) {
   for (const s of [-1, 1]) { const l = mesh(new THREE.CapsuleGeometry(0.1, 0.35, 4, 8), M('#33415c')); l.position.set(s * 0.13, 0.28, 0); g.add(l); }
   return g;
 }
+// ---------- paisagem low-poly: terreno com rio sinuoso, barrancos, árvores, grama, pedras e nuvens
+const LP = (col, o = {}) => M(col, { flatShading: true, roughness: 0.95, ...o });
 function buildWorld() {
-  // fundo do rio, margens e água
-  boxC(-120, BED - 2, -80, 120, BED, 80, M('#6b5a44'));
-  const grass = M('#6cbf5a', { roughness: 0.9 }), dirt = M('#8a6a48');
-  R.bankL = grp(null); R.bankR = grp(null);
-  boxC(-100, BED, -80, 0, BANK_Y - 0.4, 80, dirt, R.bankL); boxC(-100, BANK_Y - 0.4, -80, 0, BANK_Y, 80, grass, R.bankL);
-  boxC(0, BED, -80, 100, BANK_Y - 0.4, 80, dirt, R.bankR); boxC(0, BANK_Y - 0.4, -80, 100, BANK_Y, 80, grass, R.bankR);
-  const wt = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#2f86c9'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; for (let i = 0; i < 18; i++) { const y = rnd(i) * h, x = rnd(i + 5) * w; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 20, y - 6, x + 40, y); g.stroke(); } });
-  wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(4, 12);
-  R.water = new THREE.Mesh(new THREE.PlaneGeometry(1, 160), new THREE.MeshStandardMaterial({ map: wt, roughness: 0.25, metalness: 0.1, transparent: true, opacity: 0.92 }));
-  R.water.rotation.x = -Math.PI / 2; R.water.position.y = 0; scene.add(R.water);
-  // árvores e morros ao fundo
-  const tree = (x, z, s, parent) => { const t = grp(parent, x, BANK_Y, z); const bt = 0.3 + 0.4 * rnd(x * 7.3 + z * 1.7); box(0.4 * s, 2 * s + bt, 0.4 * s, M('#7a5232'), 0, s - bt / 2, 0, t); sph(1.3 * s, M('#3f9a4a'), 0, 2.6 * s, 0, t); sph(1.0 * s, M('#4caf50'), 0.6 * s, 3.2 * s, 0.3 * s, t); };
-  for (let i = 0; i < 10; i++) { tree(-6 - rnd(i) * 30, -12 - rnd(i + 3) * 30, 0.8 + rnd(i + 7) * 0.7, R.bankL); tree(6 + rnd(i + 11) * 30, -12 - rnd(i + 13) * 30, 0.8 + rnd(i + 17) * 0.7, R.bankR); }
-  for (let i = 0; i < 6; i++) { const h = sph(1, M(i % 2 ? '#5aa35a' : '#4e9150', { roughness: 1 }), -90 + i * 36, BANK_Y, -95 - rnd(i) * 20); h.scale.set(30, 14 + rnd(i + 2) * 10, 16); }
+  // terreno
+  const xs = [];
+  for (let x = -130; x < -32; x += 2) xs.push(x);
+  for (let x = -32; x < 32; x += 0.5) xs.push(x);
+  for (let x = 32; x <= 130; x += 2) xs.push(x);
+  const zs = []; for (let z = -170; z <= 130; z += 1) zs.push(z);
+  const nx = xs.length, nz = zs.length;
+  const pos = new Float32Array(nx * nz * 3), col = new Float32Array(nx * nz * 3);
+  const cG1 = new THREE.Color('#86c95a'), cG2 = new THREE.Color('#62ad48'), cDirt = new THREE.Color('#a8784a'), cDirt2 = new THREE.Color('#8e6239'), cSand = new THREE.Color('#dcc08a'), cBed = new THREE.Color('#8a7350');
+  const c = new THREE.Color();
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const x = xs[i], z = zs[j], k = j * nx + i;
+    // pequeno deslocamento aleatório fora da área da ponte deixa as facetas irregulares
+    const far = smooth01(Math.abs(z), 6, 12);
+    const jx = far * (rnd(k) - 0.5) * 0.35, jz = far * (rnd(k + 7) - 0.5) * 0.35;
+    const y = groundY(x + jx, z + jz);
+    pos.set([x + jx, y, z + jz], k * 3);
+    const d = Math.abs(x + jx - riverC(z + jz)) - riverW(z + jz);
+    if (d < -1.4) c.copy(cBed);
+    else if (d < -0.9) c.copy(cSand);
+    else if (d < -0.02) c.copy(cDirt).lerp(cDirt2, rnd(k + 3));
+    else c.copy(cG1).lerp(cG2, 0.25 + 0.75 * rnd(k + 11) * (0.6 + 0.4 * Math.sin(x * 0.2 + z * 0.15)));
+    col.set([c.r, c.g, c.b], k * 3);
+  }
+  const idx = [];
+  for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const a = j * nx + i, b = a + 1, d = a + nx, e = d + 1;
+    idx.push(a, d, b, b, d, e);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setIndex(idx);
+  g.computeVertexNormals();
+  R.terrainMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0 });
+  R.terrain = new THREE.Mesh(g, R.terrainMat); R.terrain.receiveShadow = true; scene.add(R.terrain);
+  // estrada de terra batida que chega na ponte
+  for (const s of [-1, 1]) boxC(s > 0 ? 15 : -90, BANK_Y, -1.6, s > 0 ? 90 : -15, BANK_Y + 0.03, 1.6, M('#8d8f94', { roughness: 0.95 }));
+  // água
+  const wt = canvasTex(256, 512, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#2c6fbf'); gr.addColorStop(0.5, '#3b86d4'); gr.addColorStop(1, '#2c6fbf');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 2;
+    for (let i = 0; i < 26; i++) { const y = rnd(i) * h, x = rnd(i + 5) * w; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 2, y + 30 + rnd(i + 2) * 30); g.stroke(); }
+  });
+  wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(3, 10);
+  R.waterMat = new THREE.MeshStandardMaterial({ map: wt, roughness: 0.18, metalness: 0.05, transparent: true, opacity: 0.9, depthWrite: false });
+  R.water = new THREE.Mesh(new THREE.PlaneGeometry(90, 300), R.waterMat);
+  R.water.rotation.x = -Math.PI / 2; R.water.position.set(0, 0, -20); scene.add(R.water);
+  // areia e rocha sob o rio (só aparecem no raio-x)
+  R.sandMat = new THREE.MeshStandardMaterial({ color: '#d9b97c', transparent: true, opacity: 0, depthWrite: false });
+  R.sand = boxC(-14, ROCK, -5, 14, BED - 0.05, 5, R.sandMat); R.sand.castShadow = false;
+  R.rock = boxC(-14, ROCK - 3, -5, 14, ROCK, 5, LP('#7b746c')); R.rock.visible = false;
+  // árvores, tufos de grama e pedras
+  const okSpot = (x, z) => { const d = Math.abs(x - riverC(z)) - riverW(z); return d > 2.5 && Math.abs(z) > 4.5 && !(Math.abs(Math.abs(x) - 30) < 6 && Math.abs(z) < 8) && !(x > 17 && x < 30 && z > 2 && z < 11); };
+  const pineM = LP('#2f7a3a'), pineM2 = LP('#3d8f45'), roundM = LP('#4caf50'), roundM2 = LP('#5bbd55'), trunkM = LP('#6e4a2c');
+  const coneG = new THREE.ConeGeometry(1, 1.6, 6), icoG = new THREE.IcosahedronGeometry(1, 0), trunkG = new THREE.CylinderGeometry(0.12, 0.16, 1, 6);
+  const tree = (x, z, s, kind) => {
+    const y = groundY(x, z), t = grp(null, x, y, z);
+    const tr = mesh(trunkG, trunkM); tr.scale.set(s, 1.6 * s, s); tr.position.y = 0.8 * s; t.add(tr);
+    if (kind) { for (let k = 0; k < 3; k++) { const c = mesh(coneG, k % 2 ? pineM2 : pineM); c.scale.setScalar(s * (1.0 - k * 0.25)); c.position.y = s * (1.9 + k * 0.8); t.add(c); } }
+    else { const a = mesh(icoG, roundM); a.scale.setScalar(1.15 * s); a.position.y = 2.4 * s; t.add(a); const b = mesh(icoG, roundM2); b.scale.setScalar(0.8 * s); b.position.set(0.5 * s, 3.0 * s, 0.3 * s); t.add(b); }
+    t.rotation.y = rnd(x * 3 + z) * 6;
+  };
+  let n = 0;
+  for (let i = 0; n < 150 && i < 2000; i++) {
+    const x = (rnd(i * 3 + 1) - 0.5) * 150, z = -110 + rnd(i * 3 + 2) * 150;
+    if (!okSpot(x, z) || Math.abs(x) < 17 && z > -10) continue;
+    tree(x, z, 0.8 + rnd(i + 9) * 0.7, rnd(i + 4) < 0.45); n++;
+  }
+  // grama: muitos tufos instanciados
+  const tuftG = new THREE.ConeGeometry(0.12, 0.45, 4), tufts = new THREE.InstancedMesh(tuftG, LP('#4f9a3c'), 900);
+  const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.35, 0), LP('#8b8e93'), 60);
+  const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+  let nt = 0, nr = 0;
+  for (let i = 0; i < 6000 && (nt < 900 || nr < 60); i++) {
+    const x = (rnd(i * 5 + 0.3) - 0.5) * 120, z = -70 + rnd(i * 5 + 1.7) * 110;
+    const d = Math.abs(x - riverC(z)) - riverW(z);
+    if (d < 0.6 || Math.abs(z) < 2.2) continue;
+    if (nt < 900) { p.set(x, groundY(x, z) + 0.18, z); q.setFromAxisAngle(_up, rnd(i) * 6); sc.setScalar(0.7 + rnd(i + 2) * 0.8); tufts.setMatrixAt(nt++, mtx.compose(p, q, sc)); }
+    else if (nr < 60 && rnd(i + 8) < 0.3) { p.set(x, groundY(x, z) + 0.05, z); q.setFromAxisAngle(_up, rnd(i) * 6); sc.set(1 + rnd(i) * 1.5, 0.6, 1 + rnd(i + 1)); rocks.setMatrixAt(nr++, mtx.compose(p, q, sc)); }
+  }
+  tufts.count = nt; rocks.count = nr; tufts.receiveShadow = rocks.receiveShadow = true;
+  scene.add(tufts, rocks);
+  // nuvens fofas low-poly
+  const cloudM = new THREE.MeshStandardMaterial({ color: '#ffffff', flatShading: true, roughness: 1, emissive: '#dfe8f5', emissiveIntensity: 0.35 });
+  const cloudG = new THREE.IcosahedronGeometry(1, 1);
+  R.clouds = [];
+  for (let i = 0; i < 9; i++) {
+    const cg = grp(null, -120 + i * 30 + rnd(i) * 12, 26 + rnd(i + 2) * 16, -95 - rnd(i + 5) * 30);
+    for (let k = 0; k < 4; k++) { const m = mesh(cloudG, cloudM, false); m.scale.setScalar(4 + rnd(i * 4 + k) * 3); m.position.set((k - 1.5) * 4.5, (k % 2) * 2, rnd(k + i) * 2); cg.add(m); }
+    R.clouds.push(cg);
+  }
 }
 // ---------- 1. tábua e pessoa
 function buildPlank() {
   R.plankSegs = [];
   const N = 12, L = 33 / N;
   const g = grp(null); R.plank = g;
-  for (let i = 0; i < N; i++) R.plankSegs.push(box(L, 0.35, 1.6, M('#b07a46', { roughness: 0.7 }), -16.5 + L * (i + 0.5), BANK_Y + 0.175, 0, g));
+  for (let i = 0; i < N; i++) R.plankSegs.push(box(L, 0.35, 1.6, M('#b07a46', { roughness: 0.7 }), -16.5 + L * (i + 0.5), BANK_Y + 0.205, 0, g));
   R.walker = person('#e76f51'); scene.add(R.walker);
 }
-// ---------- 2. viga sobre pilares
+// ---------- 2. viga de concreto, caminhão, pilares, estacas e navio
+const BSEG = 12, BL = 30 / BSEG;
 function buildBeam() {
-  const stone = M('#a9a39a', { roughness: 0.85 });
-  R.piers = grp(null);
-  for (const x of [-7.5, 0, 7.5]) asm(boxC(x - 0.8, BED, -1.2, x + 0.8, 1.6, 1.2, stone, R.piers), () => C.piers + (x + 7.5) * 0.04, 0.6, { dy: -6, s: 0.6 });
+  const conc = M('#c3c0ba', { roughness: 0.85 });
   R.beam = grp(null);
-  R.spans = [[-15, -7.5], [-7.5, -3.75], [-3.75, 0], [0, 7.5], [7.5, 15]].map(([a, b], i) => {
-    const m = boxC(a, 1.6, -1.1, b, BANK_Y, 1.1, M('#c7c0b4', { roughness: 0.8 }), R.beam);
-    asm(m, () => C.stone + i * 0.08, 0.45, { dy: 4, rz: 0.5, s: 0.6 });
-    return m;
-  });
-  R.cart = grp(null);
-  boxC(-0.9, 0.35, -0.6, 0.9, 1.1, 0.6, M('#7a5232'), R.cart);
-  for (const [x, z] of [[-0.6, -0.65], [0.6, -0.65], [-0.6, 0.65], [0.6, 0.65]]) cylZ(0.35, 0.12, M('#3b2a22'), x, 0.35, z, R.cart);
-  for (let k = 0; k < 4; k++) sph(0.32, M('#8d939c'), -0.5 + k * 0.33, 1.3, 0, R.cart);
-}
-// ---------- 3. arcos romanos
-const ARCHES = [[-15, -8.3], [-6.7, -0.8], [0.8, 6.7], [8.3, 15]];
-function buildArch() {
-  R.arch = grp(null);
-  const st = M('#c9b48a', { roughness: 0.85 }), key = M('#e0c27a', { roughness: 0.6 });
-  R.vous = [];
-  ARCHES.forEach(([x0, x1], ai) => {
-    const r = (x1 - x0) / 2, cx = (x0 + x1) / 2, sy = 0.9 - r, n = 13;
-    for (let k = 0; k < n; k++) {
-      const a = Math.PI - (k + 0.5) * Math.PI / n;
-      const m = mesh(GEO.box, k === (n - 1) / 2 ? key : st);
-      m.scale.set(0.55, (Math.PI * (r + 0.27) / n) * 0.96, 2.2);
-      m.position.set(cx + Math.cos(a) * (r + 0.27), sy + Math.sin(a) * (r + 0.27), 0);
-      m.rotation.z = a; R.arch.add(m);
-      const order = Math.min(k, n - 1 - k), isKey = k === (n - 1) / 2;
-      asm(m, () => (isKey ? C.key : C.arch0 + ai * 0.12 + order * ((C.key - C.arch0 - 0.6) / 6)), isKey ? 0.5 : 0.4, { dy: isKey ? 8 : 5, rz: 1.5, s: 0.5 });
-      R.vous.push(m);
-    }
-  });
-  R.archDeck = grp(R.arch);
-  boxC(-15, 1.6, -1.1, 15, BANK_Y, 1.1, M('#d6c39a', { roughness: 0.8 }), R.archDeck);
-  for (const z of [-1, 1]) boxC(-15, BANK_Y, z > 0 ? 0.9 : -1.1, 15, BANK_Y + 0.45, z > 0 ? 1.1 : -0.9, M('#c9b48a'), R.archDeck);
-  asm(R.archDeck, () => C.key + 0.5, 0.6, { dy: 4, s: 0.7 });
-  // barco à vela
-  R.ship = grp(null);
-  boxC(-1.0, -0.4, -3.2, 1.0, 0.8, 3.2, M('#8b5a33'), R.ship);
-  boxC(-0.85, 0.8, -2.6, 0.85, 1.0, 2.6, M('#a77749'), R.ship);
-  R.mast = grp(R.ship, 0, 1.0, 0.4);
-  const mm = mesh(GEO.cyl, M('#5a3d22')); mm.scale.set(0.1, 7, 0.1); mm.position.y = 3.5; R.mast.add(mm);
-  const sail = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 4.2), new THREE.MeshStandardMaterial({ color: '#f4efe2', side: THREE.DoubleSide })); sail.position.set(0, 4.0, 0.12); sail.rotation.y = Math.PI / 2; R.mast.add(sail);
-}
-// ---------- 4. treliça de ferro e trem
-function buildTruss() {
-  R.truss = grp(null);
-  const iron = M('#8a3324', { roughness: 0.5, metalness: 0.4 });
-  const parts = [];
-  for (const z of [-1.3, 1.3]) {
-    const P_ = (x, y) => V3(x, y, z);
-    parts.push([P_(-15, 2), P_(15, 2)], [P_(-12, 6), P_(12, 6)], [P_(-15, 2), P_(-12, 6)], [P_(15, 2), P_(12, 6)]);
-    for (let x = -12; x <= 12; x += 3) parts.push([P_(x, 2), P_(x, 6)]);
-    for (let x = -12; x < 12; x += 3) parts.push(x < 0 ? [P_(x, 6), P_(x + 3, 2)] : [P_(x, 2), P_(x + 3, 6)]);
+  R.beamSegs = [];
+  for (let i = 0; i < BSEG; i++) {
+    const m = box(BL, 1.0, 2.2, conc, -15 + BL * (i + 0.5), 1.5, 0, R.beam);
+    asm(m, () => C.beam0 + Math.abs(i - 5.5) * 0.07, 0.45, { dy: 7, rz: 0.4, s: 0.7 });
+    R.beamSegs.push(m);
   }
-  for (let x = -12; x <= 12; x += 3) parts.push([V3(x, 6, -1.3), V3(x, 6, 1.3)]);
-  parts.forEach(([a, b], i) => { const m = member(R.truss, a, b, 0.11, iron); asm(m, () => C.truss0 + (i % 23) * 0.09, 0.4, { dy: 4, rz: 1, s: 0.3 }); });
-  const dk = boxC(-15, 1.7, -1.25, 15, BANK_Y, 1.25, M('#4a4f58'), R.truss);
-  asm(dk, () => C.truss0, 0.5, { dy: 3, s: 0.6 });
-  for (const z of [-0.5, 0.5]) boxC(-15, BANK_Y, z - 0.06, 15, BANK_Y + 0.1, z + 0.06, M('#9aa3b1', { metalness: 0.6 }), R.truss);
-  // trem
-  R.train = grp(null);
-  const loco = grp(R.train, 0, 0, 0);
-  boxC(-1.6, 0.1, -0.7, 1.6, 0.5, 0.7, M('#222'), loco);
-  const boiler = mesh(GEO.cyl, M('#2b2f39', { metalness: 0.4 })); boiler.scale.set(0.6, 2.2, 0.6); boiler.rotation.z = Math.PI / 2; boiler.position.set(0.3, 1.1, 0); loco.add(boiler);
-  boxC(-1.6, 0.5, -0.7, -0.6, 2.0, 0.7, M('#c0392b'), loco);
-  const ch = mesh(GEO.cyl, M('#222')); ch.scale.set(0.2, 0.7, 0.2); ch.position.set(1.0, 1.9, 0); loco.add(ch);
-  for (let k = 1; k <= 2; k++) { const car = grp(R.train, -3.6 * k, 0, 0); boxC(-1.6, 0.1, -0.7, 1.6, 1.6, 0.7, M(k % 2 ? '#2a9d8f' : '#e9a23b'), car); }
+  // caminhão
+  R.truck = grp(null);
+  boxC(-1.5, 0.45, -0.75, 0.9, 2.0, 0.75, M('#e9a23b'), R.truck);
+  boxC(1.0, 0.45, -0.72, 2.0, 1.5, 0.72, M('#d1495b'), R.truck);
+  boxC(1.25, 1.1, -0.76, 1.9, 1.42, 0.76, M('#bfe3f7', { roughness: 0.2 }), R.truck);
+  for (const x of [-1.0, 0.3, 1.5]) for (const z of [-0.78, 0.78]) cylZ(0.3, 0.16, M('#1b1b1b'), x, 0.3, z, R.truck);
+  // pilares (grupo com origem na base, para poder afundar e tombar)
+  const stone = M('#a9a39a', { roughness: 0.85 });
+  R.piers = [];
+  for (const x of [-7.5, 0, 7.5]) {
+    const p = grp(null, x, BED, 0);
+    boxC(-0.8, 0, -1.2, 0.8, 1.0 - BED, 1.2, stone, p);
+    asm(p, () => C.piers + (x + 7.5) * 0.04, 0.6, { dy: -7, s: 0.8 });
+    R.piers.push(p);
+  }
+  // estacas da fundação (cilindros que descem de dentro do pilar até a rocha)
+  R.piles = [];
+  const pm = M('#8f969e', { roughness: 0.6 });
+  for (const x of [-7.5, 0, 7.5]) for (const [dx, dz] of [[-0.45, -0.6], [0.45, -0.6], [-0.45, 0.6], [0.45, 0.6]]) {
+    const m = mesh(GEO.cyl, pm); const len = BED - ROCK + 0.8; m.scale.set(0.2, len, 0.2);
+    m.userData = { x: x + dx, z: dz, len, k: R.piles.length }; scene.add(m); R.piles.push(m);
+  }
+  // navio de carga
+  R.ship = grp(null);
+  boxC(-1.7, -0.6, -11, 1.7, 1.3, -1.6, M('#c0392b'), R.ship);
+  const bow = box(2.4, 1.9, 2.4, M('#c0392b'), 0, 0.35, -1.6, R.ship); bow.rotation.y = Math.PI / 4; bow.scale.set(2.4, 1.9, 2.4);
+  boxC(-1.55, 1.3, -10.6, 1.55, 1.5, -2.0, M('#e8e1d4'), R.ship);
+  boxC(-1.2, 1.5, -10.2, 1.2, 4.2, -8.0, M('#f4f1ea'), R.ship);
+  boxC(-1.0, 3.4, -8.06, 1.0, 3.9, -7.94, M('#7fb3d5', { roughness: 0.2 }), R.ship);
+  const cols = ['#2a9d8f', '#e9a23b', '#4d7cfe', '#e76f51'];
+  for (let k = 0; k < 4; k++) boxC(-1.3, 1.5, -7.4 + k * 1.3, 1.3, 2.6 + (k % 2) * 0.4, -6.3 + k * 1.3, M(cols[k]), R.ship);
 }
-// ---------- 5. ponte pênsil (Tacoma)
-const SEG = 25, SEGL = 2;
+// ---------- 3. ponte pênsil
+const SEG = 15, SEGL = 2, TX = 17, TOPY = 21;
 function buildSuspension() {
   R.susp = grp(null);
-  const tw = M('#c0392b', { roughness: 0.5, metalness: 0.3 }), conc = M('#9aa0a8', { roughness: 0.8 });
+  const tw = M('#c0392b', { roughness: 0.5, metalness: 0.3 }), conc = M('#9aa0a8', { roughness: 0.8 }), st = M('#5d6675', { metalness: 0.4, roughness: 0.5 });
   R.towers = [];
-  for (const x of [-18, 18]) {
-    const t = grp(R.susp);
-    boxC(x - 1.2, BED, -3.2, x + 1.2, 0.5, 3.2, conc, t);
-    for (const z of [-2.6, 2.6]) boxC(x - 0.35, 0.5, z - 0.3, x + 0.35, 22, z + 0.3, tw, t);
-    for (const y of [11.5, 21.0]) boxC(x - 0.3, y, -2.3, x + 0.3, y + 0.8, 2.3, tw, t);
-    asm(t, () => C.towers + (x > 0 ? 0.3 : 0), 0.9, { dy: -24, s: 1 });
-    R.towers.push(t);
+  for (const s of [-1, 1]) {
+    const t = grp(R.susp, s * TX, BANK_Y - 1, 0);
+    for (const zs of [-1, 1]) boxC(-1.3, 0, zs > 0 ? 1.8 : -3.4, 1.3, 1.5, zs > 0 ? 3.4 : -1.8, conc, t);
+    for (const z of [-2.6, 2.6]) boxC(-0.35, 1.5, z - 0.3, 0.35, TOPY - (BANK_Y - 1), z + 0.3, tw, t);
+    for (const y of [10.5, 18.8]) boxC(-0.3, y, -2.3, 0.3, y + 0.8, 2.3, tw, t);
+    asm(t, () => C.towers + (s > 0 ? 0.3 : 0), 0.9, { dy: -24, s: 1 });
+    t.userData.s = s; R.towers.push(t);
   }
   R.anchors = [];
-  for (const s of [-1, 1]) { const a = boxC(s > 0 ? 33 : -39, BANK_Y, -3.4, s > 0 ? 39 : -33, 7, 3.4, conc, R.susp); asm(a, () => C.anch, 0.6, { dy: 8, s: 0.4 }); R.anchors.push(a); }
+  for (const s of [-1, 1]) for (const zs of [-1, 1]) {
+    const a = boxC(s > 0 ? 26.5 : -32.5, BANK_Y - 2.2, zs > 0 ? 1.9 : -4.9, s > 0 ? 32.5 : -26.5, BANK_Y + 2.3, zs > 0 ? 4.9 : -1.9, conc, R.susp);
+    asm(a, () => C.anch + (s > 0 ? 0.25 : 0), 0.6, { dy: 9, s: 0.4 });
+    R.anchors.push(a);
+  }
   R.deck = [];
   for (let i = 0; i < SEG; i++) {
-    const x0 = -25 + i * SEGL;
-    const g = grp(R.susp, x0 + SEGL / 2, 0, 0);
+    const xc = -15 + i * SEGL + SEGL / 2;
+    const g = grp(R.susp, xc, 0, 0);
     boxC(-SEGL / 2, 1.5, -2.2, SEGL / 2, BANK_Y, 2.2, M('#d8d4cc', { roughness: 0.7 }), g);
     const order = Math.abs(i - (SEG - 1) / 2);
     asm(g, () => C.deckS + order * 0.12, 0.45, { dy: -6, s: 0.6 });
+    // treliça lateral do segmento (aparece no fim)
+    const tr = grp(g);
+    for (const z of [-2.32, 2.32]) {
+      member(tr, V3(-1, 2.0, z), V3(1, 2.0, z), 0.06, st);
+      member(tr, V3(-1, 3.4, z), V3(1, 3.4, z), 0.07, st);
+      member(tr, V3(-1, 2.0, z), V3(-1, 3.4, z), 0.06, st);
+      if (i === SEG - 1) member(tr, V3(1, 2.0, z), V3(1, 3.4, z), 0.06, st);
+      member(tr, i % 2 ? V3(-1, 2.0, z) : V3(-1, 3.4, z), i % 2 ? V3(1, 3.4, z) : V3(1, 2.0, z), 0.06, st);
+    }
+    asm(tr, () => C.truss0 + order * 0.1, 0.45, { dy: 4, s: 0.3 });
+    g.userData = { xc, tr };
     R.deck.push(g);
   }
-  R.cablesS = [-2.6, 2.6].map(() => cylPool(48, 0.16, M('#e0e3e8', { metalness: 0.6, roughness: 0.3 })));
+  R.cablesS = [-2.6, 2.6].map(() => cylPool(60, 0.16, M('#e0e3e8', { metalness: 0.6, roughness: 0.3 })));
   R.hangers = cylPool(SEG * 2, 0.05, M('#cfd4dc', { metalness: 0.5 }));
-  // reforço contra o vento (treliça sob a pista) e amortecedores
-  R.stiff = grp(R.susp);
-  const st = M('#5d6675', { metalness: 0.4 });
-  for (const z of [-2.0, 2.0]) for (let i = 0; i < SEG; i++) { const x = -25 + i * SEGL; member(R.stiff, V3(x, 1.5, z), V3(x + SEGL, 0.5, z), 0.07, st); member(R.stiff, V3(x, 0.5, z), V3(x + SEGL, 0.5, z), 0.07, st); }
-  asm(R.stiff, () => C.stiff, 0.9, { dy: -4, s: 0.8 });
-  R.dampers = grp(R.susp);
-  for (const x of [-5, 0, 5]) { const d = grp(R.dampers, x, 0, 0); boxC(-0.5, -0.3, -0.5, 0.5, 0.35, 0.5, M('#ffd23f'), d); const sp = mesh(GEO.cyl, M('#444')); sp.scale.set(0.12, 1.1, 0.12); sp.position.y = 0.9; d.add(sp); }
-  asm(R.dampers, () => C.damp, 0.6, { dy: -4, s: 0.3 });
-}
-function cableY(x) { // cabo principal: blocos (±36, 6.5) → torres (±18, 22) → meio (0, 5)
-  const ax = Math.abs(x);
-  if (ax <= 18) return 5 + (22 - 5) * (ax / 18) ** 2;
-  return lerp(22, 6.5, (ax - 18) / 18);
-}
-// ---------- 6. ponte estaiada
-function buildStayed() {
-  R.stay = grp(null);
-  const tw = M('#eef0f3', { roughness: 0.4 }), conc = M('#9aa0a8', { roughness: 0.8 });
-  R.pylons = [];
-  for (const x of [-13, 13]) {
-    const t = grp(R.stay);
-    boxC(x - 1.2, BED, -3.2, x + 1.2, 0.5, 3.2, conc, t);
-    for (const z of [-2.6, 2.6]) boxC(x - 0.4, 0.5, z - 0.3, x + 0.4, 24, z + 0.3, tw, t);
-    boxC(x - 0.35, 24, -2.9, x + 0.35, 25, 2.9, tw, t);
-    boxC(x - 0.35, 0.5, -2.3, x + 0.35, 1.3, 2.3, tw, t);
-    asm(t, () => C.pylons + (x > 0 ? 0.3 : 0), 0.9, { dy: -26, s: 1 });
-    R.pylons.push(t);
-  }
-  // ordem de montagem em balanço: a partir de cada torre, para os dois lados; fecho no meio
-  const segs = [];
-  for (let i = 0; i < SEG; i++) {
-    const xc = -25 + i * SEGL + SEGL / 2;
-    const px = xc < 0 ? -13 : 13;
-    const isClose = Math.abs(xc) < 1;
-    const ring = isClose ? 7 : Math.ceil(Math.abs(xc - px) / SEGL);
-    segs.push({ i, xc, px, ring, isClose });
-  }
-  const T0 = () => C.cant0, DT = () => (C.cant1 - C.cant0) / 8;
-  R.stDeck = segs.map(sg => {
-    const g = grp(R.stay, sg.xc, 0, 0);
-    boxC(-SEGL / 2, 1.5, -2.2, SEGL / 2, BANK_Y, 2.2, M('#d8d4cc', { roughness: 0.7 }), g);
-    asm(g, () => T0() + sg.ring * DT() + (sg.xc > sg.px ? 0.07 : 0), 0.4, { dy: -5, s: 0.6 });
-    return g;
-  });
-  R.stays = [];
-  segs.filter(sg => !sg.isClose && sg.ring >= 1).forEach(sg => {
-    for (const z of [-2.6, 2.6]) {
-      const top = V3(sg.px, 23.5 - sg.ring * 1.1, z), end = V3(sg.xc + Math.sign(sg.xc - sg.px) * SEGL / 2, BANK_Y + 0.02, z * 0.85);
-      const m = member(R.stay, top, end, 0.07, M('#f2c94c', { metalness: 0.5, roughness: 0.3 }));
-      asm(m, () => T0() + sg.ring * DT() + 0.25, 0.35, { dy: 0, s: 0.01 });
-      R.stays.push(m);
+  // juntas de dilatação: dentes de aço intercalados nas duas pontas
+  R.jointDeck = []; R.jointBank = [];
+  const steel = M('#b9c0c8', { metalness: 0.6, roughness: 0.35 });
+  for (const s of [-1, 1]) {
+    const gd = grp(R.susp), gb = grp(R.susp);
+    for (let k = 0; k <= 10; k++) {
+      const z = -2.0 + k * 0.4, x0 = s * 14.45, x1 = s * 15.3, y0 = BANK_Y + 0.01, y1 = BANK_Y + 0.07;
+      if (k % 2 === 0) boxC(Math.min(x0, x1), y0, z - 0.09, Math.max(x0, x1), y1, z + 0.09, steel, gd);
+      else { const a = s * 14.7, b = s * 15.55; boxC(Math.min(a, b), y0, z - 0.09, Math.max(a, b), y1, z + 0.09, steel, gb); }
     }
-  });
-  // acabamento: asfalto, postes, carros
-  R.asphalt = grp(R.stay);
-  boxC(-25, BANK_Y, -2.0, 25, BANK_Y + 0.05, 2.0, M('#2f3238', { roughness: 0.9 }), R.asphalt);
-  for (let x = -24; x < 25; x += 3) boxC(x, BANK_Y + 0.05, -0.08, x + 1.4, BANK_Y + 0.06, 0.08, M('#f5f5f5'), R.asphalt);
-  asm(R.asphalt, () => C.asphalt, 0.6, { dy: 3, s: 0.9 });
-  R.lamps = [];
-  for (let x = -22; x <= 22; x += 6) for (const z of [-2.05, 2.05]) {
-    const l = grp(R.stay, x, BANK_Y + 0.05, z);
-    const p = mesh(GEO.cyl, M('#5d6675')); p.scale.set(0.06, 2.4, 0.06); p.position.y = 1.2; l.add(p);
-    sph(0.18, new THREE.MeshStandardMaterial({ color: '#fff6d0', emissive: '#ffd36b', emissiveIntensity: 1.6 }), 0, 2.45, 0, l);
-    asm(l, () => C.lamps + (x + 22) * 0.02, 0.4, { dy: 3, s: 0.2 });
-    R.lamps.push(l);
+    asm(gd, () => C.teeth, 0.4, { dy: 2, s: 0.5 }); asm(gb, () => C.teeth + 0.15, 0.4, { dy: 2, s: 0.5 });
+    gd.userData.s = s; R.jointDeck.push(gd); R.jointBank.push(gb);
   }
-  R.carList = [];
-  const cols = ['#e63946', '#4d7cfe', '#ffd23f', '#2a9d8f', '#ff8a2a', '#8e5bd1'];
-  for (let k = 0; k < 6; k++) {
+  // carro que passa na junta e carros do final
+  const car = (colr) => {
     const c = grp(null);
-    boxC(-0.9, 0.12, -0.45, 0.9, 0.6, 0.45, M(cols[k]), c);
+    boxC(-0.9, 0.12, -0.45, 0.9, 0.6, 0.45, M(colr), c);
     boxC(-0.5, 0.6, -0.4, 0.4, 0.95, 0.4, M('#bfe3f7', { metalness: 0.3, roughness: 0.2 }), c);
     for (const [x, z] of [[-0.55, -0.47], [0.55, -0.47], [-0.55, 0.47], [0.55, 0.47]]) cylZ(0.2, 0.06, M('#111'), x, 0.2, z, c);
-    c.userData = { lane: k % 2 ? 1.0 : -1.0, off: k * 9 };
-    R.carList.push(c);
-  }
+    return c;
+  };
+  R.jcar = car('#4d7cfe');
+  R.carList = [];
+  const cols = ['#e63946', '#4d7cfe', '#ffd23f', '#2a9d8f', '#ff8a2a', '#8e5bd1'];
+  for (let k = 0; k < 6; k++) { const c = car(cols[k]); c.userData = { lane: k % 2 ? 0.8 : -0.8, off: k * 13 }; R.carList.push(c); }
 }
 function buildParticles() {
-  R.splash = []; for (let i = 0; i < 60; i++) { const m = mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: '#cfe9ff', transparent: true, opacity: 0.8, depthWrite: false }), false); m.visible = false; scene.add(m); R.splash.push(m); }
-  R.dust = []; for (let i = 0; i < 30; i++) { const m = mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: '#b39a7a', transparent: true, opacity: 0.7, depthWrite: false }), false); m.visible = false; scene.add(m); R.dust.push(m); }
+  R.splash = []; for (let i = 0; i < 70; i++) { const m = mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: '#d6ecff', transparent: true, opacity: 0.8, depthWrite: false }), false); m.visible = false; scene.add(m); R.splash.push(m); }
+  R.dust = []; for (let i = 0; i < 36; i++) { const m = mesh(GEO.sph, new THREE.MeshStandardMaterial({ color: '#d9b97c', transparent: true, opacity: 0.8, depthWrite: false }), false); m.visible = false; scene.add(m); R.dust.push(m); }
 }
 
 // ================================================================ mestre de obras 3D (cena separada, canto inferior esquerdo)
@@ -699,34 +719,40 @@ function updateHost(t, HOST) {
 function flyOut(g, t, t0, dir = 1, reset = true) {
   if (reset) {
     const b = g.userData.base ??= { p: g.position.clone(), r: g.rotation.clone() };
-    g.position.copy(b.p); g.rotation.copy(b.r);
+    g.position.copy(b.p); g.rotation.copy(b.r); g.scale.setScalar(1);
   }
-  g.scale.setScalar(1);
   const k = P(t, t0, 0.6);
   if (k <= 0) return true;
   g.position.y += 25 * EZ.i2(k); g.rotation.z += dir * 0.8 * k; g.scale.setScalar(Math.max(0.001, 1 - k));
   return k < 1;
 }
+// gira um bloco em torno de um pivô no eixo z (para quebras em V)
+function rotAbout(m, xc, yc, px, a) { const rel = xc - px; m.position.set(px + rel * Math.cos(a), yc + rel * Math.sin(a), 0); m.rotation.set(0, 0, a); }
+let _xrayOn = false;
 function updateWorld(t) {
   applyAsm(t);
-  // rio: largura e correnteza
-  const gap = gapAt(t);
-  R.bankL.position.x = GAP0 - gap; R.bankR.position.x = gap - GAP0;
-  R.bankL.position.x -= GAP0; R.bankR.position.x += GAP0;
-  R.water.scale.x = 2 * gap; R.water.material.map.offset.y = -t * 0.05;
+  R.waterMat.map.offset.y = -t * 0.04;
+  R.clouds.forEach((c, i) => { c.userData.x0 ??= c.position.x; c.position.x = c.userData.x0 + t * (0.25 + 0.05 * i); });
+  // raio-x da fundação: terreno, água e areia ficam transparentes
+  const xk = between(t, C.xray0, C.xray1 + 0.4) ? Math.min(P(t, C.xray0, 0.4), 1 - P(t, C.xray1, 0.4)) : 0;
+  const on = xk > 0;
+  if (on !== _xrayOn) { _xrayOn = on; R.terrainMat.transparent = on; R.terrainMat.depthWrite = !on; R.terrainMat.needsUpdate = true; }
+  R.terrainMat.opacity = 1 - 0.7 * xk;
+  R.sand.visible = R.rock.visible = on; R.sandMat.opacity = 0.5 * xk;
+  const sk = between(t, C.scour0, C.rwP.a) ? P(t, C.scour0, 0.4) : 0;
+  R.waterMat.opacity = 0.9 - 0.35 * sk - 0.6 * xk;
   updatePlank(t);
   updateBeam(t);
-  updateArch(t);
-  updateTruss(t, gap);
   updateSuspension(t);
-  updateStayed(t);
+  updateCars(t);
   updateParticles(t);
 }
 function updatePlank(t) {
-  const segs = R.plankSegs, N = segs.length, L = 33 / N;
+  const segs = R.plankSegs, N = segs.length, L = 33 / N, Y0 = BANK_Y + 0.205;
   const drop = 1 - EZ.i2(P(t, C.plank0, C.slam - C.plank0));
+  R.plank.scale.setScalar(1);
   R.plank.position.set(0, 14 * drop, 0); R.plank.rotation.set(0, 1.2 * drop, 0);
-  R.plank.visible = flyOut(R.plank, t, C.stone - 0.45, 1, false);
+  R.plank.visible = flyOut(R.plank, t, C.beam0 - 0.35, 1, false);
   const broken = between(t, C.brk, C.rwH.a);
   const th = broken ? 1.25 * EZ.i2(P(t, C.brk, 0.45)) : 0;
   // trampolim: quanto mais perto do meio, mais a tábua enverga e quica
@@ -737,103 +763,131 @@ function updatePlank(t) {
   const sag = x => -A * (1 - (x / 16.5) ** 2);
   segs.forEach((m, i) => {
     const xc = -16.5 + L * (i + 0.5);
-    if (broken) {
-      const sgn = xc < 0 ? -1 : 1, pivot = sgn * 15, rel = xc - pivot;
-      const a = -sgn * th;
-      m.position.set(pivot + rel * Math.cos(a), BANK_Y + 0.175 + rel * Math.sin(a), 0);
-      m.rotation.set(0, 0, a);
-    } else {
-      m.position.set(xc, BANK_Y + 0.175 + sag(xc), 0);
-      m.rotation.set(0, 0, Math.atan(2 * A * xc / 16.5 ** 2));
-    }
+    if (broken) { const px = xc < 0 ? -15 : 15; rotAbout(m, xc, Y0, px, xc > px ? -th : th); }
+    else { m.position.set(xc, Y0 + sag(xc), 0); m.rotation.set(0, 0, Math.atan(2 * A * xc / 16.5 ** 2)); }
   });
-  // pessoa andando e quicando
   const w = R.walker;
   w.visible = between(t, C.walk0, C.rwH.a);
   if (w.visible) {
-    let y = BANK_Y + 0.35 + sag(wx) + bounce * 1.6 * grow;
-    let x = wx;
-    if (broken) { const k = P(t, C.brk, 0.7); y = lerp(BANK_Y + 0.35, -2.5, EZ.i2(k)); x = wx; w.rotation.z = 2 * k; }
+    let y = BANK_Y + 0.38 + sag(wx) + bounce * 1.6 * grow, x = wx;
+    if (broken) { const k = P(t, C.brk, 0.7); y = lerp(BANK_Y + 0.38, -2.5, EZ.i2(k)); w.rotation.z = 2 * k; }
     else w.rotation.z = 0;
     w.position.set(x, y, 0); w.rotation.y = Math.PI / 2;
   }
 }
 function updateBeam(t) {
-  R.piers.visible = t >= C.piers && flyOut(R.piers, t, C.archOut + 0.2, -1);
-  R.beam.visible = t >= C.stone && flyOut(R.beam, t, C.beamOut);
-  // viga do meio racha com o peso da carroça
-  const cracked = between(t, C.crack, C.rwV.a);
-  const th = cracked ? 0.9 * EZ.i2(P(t, C.crack, 0.4)) : 0;
-  const [, sL, sR] = R.spans;
-  if (t >= C.stone + 0.6 && t < C.beamOut) {
-    if (cracked) {
-      const rot = (m, px, sgn) => { const rel = m.position.x - px; const a = -sgn * th; m.position.set(px + rel * Math.cos(a), 1.8 + rel * Math.sin(a), 0); m.rotation.z = a; };
-      rot(sL, -7.5, 1); rot(sR, 0, -1);
-    }
+  R.beam.visible = t >= C.beam0 && flyOut(R.beam, t, C.beamOut);
+  // 1) caminhão: a viga enverga e racha no meio (apoiada só nas margens)
+  const trk = between(t, C.truck0, C.rwV.a);
+  const crackV = between(t, C.crack, C.rwV.a);
+  const A = trk && !crackV ? 0.55 * EZ.i2(P(t, C.truck0 + 0.6, C.crack - C.truck0 - 0.6)) : 0;
+  const sagB = x => -A * (1 - (x / 15) ** 2);
+  // 2) erosão: o pilar do meio afunda e tomba; 3) navio: o pilar do meio é empurrado
+  const scour = between(t, C.scour0, C.rwP.a), ship = between(t, C.bonk, C.rwD.a);
+  const [pL, pM, pR] = R.piers;
+  let thMid = 0;
+  if (scour) {
+    const d = 2.4 * EZ.i2(P(t, C.sink - 0.6, 1.0)), tilt = 0.45 * EZ.i2(P(t, C.sink, 0.8));
+    pM.position.y = BED - d; pM.rotation.z = -tilt;
+    thMid = 0.85 * EZ.i2(P(t, C.sink + 0.1, 0.6));
   }
-  const c = R.cart;
-  c.visible = between(t, C.cart0, C.rwV.a);
-  if (c.visible) {
-    const x = lerp(-24, -3.75, EZ.o(P(t, C.cart0, C.crack - C.cart0)));
-    const fall = cracked ? EZ.i2(P(t, C.crack, 0.6)) : 0;
-    c.position.set(x, BANK_Y - fall * 4.5, 0); c.rotation.z = fall * 0.8;
+  if (ship) {
+    pM.rotation.x = 0.75 * EZ.i2(P(t, C.bonk, 0.6));
+    thMid = 0.9 * EZ.i2(P(t, C.bonk + 0.25, 0.6));
   }
-}
-function updateArch(t) {
-  R.arch.visible = t >= C.arch0 && flyOut(R.arch, t, C.archOut);
+  R.beamSegs.forEach((m, i) => {
+    const xc = -15 + BL * (i + 0.5);
+    if (crackV) { const th = 1.0 * EZ.i2(P(t, C.crack, 0.5)), px = xc < 0 ? -15 : 15; rotAbout(m, xc, 1.5, px, xc > px ? -th : th); }
+    else if (thMid > 0 && Math.abs(xc) < 7.5) { const px = xc < 0 ? -7.5 : 7.5; rotAbout(m, xc, 1.5, px, xc > px ? -thMid : thMid); }
+    else if (A > 0) { m.position.y = 1.5 + sagB(xc); m.rotation.z = Math.atan(2 * A * xc / 225); }
+  });
+  for (const p of R.piers) if (p.visible) p.visible = flyOut(p, t, C.beamOut + 0.15, -1, false);
+  // caminhão
+  const c = R.truck;
+  c.visible = trk;
+  if (trk) {
+    const x = lerp(-34, -1.2, EZ.o(P(t, C.truck0, C.crack - C.truck0)));
+    let y = BANK_Y + (Math.abs(x) > 15 ? 0.03 : 0) + (Math.abs(x) <= 15 ? sagB(x) : 0), rz = 0;
+    if (crackV) { const k = EZ.i2(P(t, C.crack, 0.7)); y -= k * 5; rz = -k * 0.9; }
+    c.position.set(x, y, 0); c.rotation.set(0, 0, rz);
+  }
+  // estacas
+  R.piles.forEach(m => {
+    const u = m.userData;
+    m.visible = t >= C.piles && t < C.beamOut;
+    if (!m.visible) return;
+    const k = EZ.io(P(t, C.piles + (u.k % 4) * 0.06 + Math.floor(u.k / 4) * 0.12, 1.1));
+    m.position.set(u.x, BED - u.len / 2 + 3.9 * (1 - k), u.z);
+  });
+  // navio
   const s = R.ship;
-  s.visible = between(t, C.ship0, C.rwA.a);
+  s.visible = between(t, C.ship0, C.rwD.a);
   if (s.visible) {
-    const z = lerp(32, 4.3, EZ.o(P(t, C.ship0, C.bonk - C.ship0)));
+    const z = lerp(-42, -1.35, P(t, C.ship0, C.bonk - C.ship0));
     const hit = t > C.bonk ? Math.exp(-(t - C.bonk) * 3) : 0;
-    s.position.set(-3.75, 0, z + hit * 0.8 * Math.sin((t - C.bonk) * 14));
-    s.rotation.set(0.05 * Math.sin(t * 2), 0, 0);
-    R.mast.rotation.x = t > C.bonk ? 0.35 * EZ.back(P(t, C.bonk, 0.4)) : 0;
+    s.position.set(0, 0.06 * Math.sin(t * 2.2), z - (t > C.bonk ? 0.9 * (1 - Math.exp(-(t - C.bonk) * 4)) : 0));
+    s.rotation.set(0.04 * Math.sin(t * 1.7) + hit * 0.12 * Math.sin((t - C.bonk) * 14), 0, 0.03 * Math.sin(t * 1.3));
   }
 }
-function updateTruss(t, gap) {
-  R.truss.visible = t >= C.truss0 && flyOut(R.truss, t, C.trussOut);
-  if (between(t, C.trussFall, C.rwT.a)) {
-    const k = EZ.i2(P(t, C.trussFall, 0.8));
-    R.truss.position.y = -6 * k; R.truss.rotation.z = 0.25 * k * Math.sin(1.5);
-  } else if (t < C.trussOut) { R.truss.position.y = 0; R.truss.rotation.z = 0; }
-  const tr = R.train;
-  tr.visible = between(t, C.train0, C.train1);
-  if (tr.visible) tr.position.set(lerp(-34, 34, P(t, C.train0, C.train1 - C.train0)), BANK_Y + 0.1, 0);
-}
+// pontos do topo das torres (seguem a inclinação)
+const H_T = TOPY - (BANK_Y - 1);
+function towerTop(s, ang) { return { x: s * TX - H_T * Math.sin(s * ang), y: BANK_Y - 1 + H_T * Math.cos(ang) }; }
 function updateSuspension(t) {
-  const on = t >= C.towers && flyOut(R.susp, t, C.suspOut);
-  R.susp.visible = on;
-  // Tacoma: a pista torce e ondula até cair
-  const osc = between(t, C.wind, C.rwK.a);
+  // torres puxadas para dentro (sem ancoragem)
+  const tip = between(t, C.tip0, C.rwS.a);
+  const ang = tip ? 0.1 * EZ.io(P(t, C.tip0, C.fall0 - C.tip0)) + 1.15 * EZ.i2(P(t, C.fall0, 1.0)) : 0;
+  R.towers.forEach(tw => { if (ang) tw.rotation.z = tw.userData.s * ang; });
+  const fallS = between(t, C.fall0, C.rwS.a);
+  // Tacoma
+  const osc = between(t, C.wind, C.rwN.a);
   const A = osc ? 0.55 * EZ.i2(P(t, C.wind, C.fall - C.wind)) : 0;
-  const fallen = between(t, C.fall, C.rwK.a);
+  const fallN = between(t, C.fall, C.rwN.a);
+  // dilatação: a pista estica e embarriga para cima
+  const heat = between(t, C.heat, C.rwJ.a);
+  const B = heat ? 1.4 * EZ.i2(P(t, C.buckle - 0.4, 1.0)) : 0;
+  const calm = between(t, C.windOK, E('t1') + 0.3);
   const deckPos = [];
   R.deck.forEach((g, i) => {
-    const xc = -25 + i * SEGL + SEGL / 2;
-    const env = Math.sin(Math.PI * (xc + 25) / 50);
-    let tw = A * env * Math.sin((t - C.wind) * 6.5 + xc * 0.15);
-    let y = A * 1.5 * env * Math.sin((t - C.wind) * 4 + xc * 0.2);
-    if (fallen && Math.abs(xc) < 11) { const k = P(t, C.fall + Math.abs(xc) * 0.03, 0.9); y -= 9 * EZ.i2(k); tw += 1.2 * k; }
-    if (osc || fallen) { g.position.y = y; g.rotation.x = tw; }
-    else if (t >= C.deckS + 3) { g.position.y = 0; g.rotation.x = 0; }
-    deckPos.push({ xc, y: (osc || fallen) ? y : g.position.y, tw: (osc || fallen) ? tw : 0, down: fallen && Math.abs(xc) < 11 });
+    const xc = g.userData.xc;
+    let y = 0, tw = 0, rz = 0, down = false;
+    if (fallS) { const k = EZ.i2(P(t, C.fall0 + Math.abs(xc) * 0.02, 0.9)); y = -10 * k; tw = 0.8 * k * (i % 2 ? 1 : -1); down = k > 0; }
+    if (osc) {
+      const env = Math.sin(Math.PI * (xc + 15) / 30);
+      tw = A * env * Math.sin((t - C.wind) * 6.5 + xc * 0.25);
+      y = A * 1.5 * env * Math.sin((t - C.wind) * 4 + xc * 0.3);
+      if (fallN && Math.abs(xc) < 9) { const k = P(t, C.fall + Math.abs(xc) * 0.03, 0.9); y -= 9 * EZ.i2(k); tw += 1.2 * k; down = k > 0; }
+    }
+    if (calm) y = 0.03 * Math.sin(t * 9 + xc);
+    if (B > 0) { y = B * (1 + Math.cos(Math.PI * xc / 15)) / 2; rz = Math.atan(-B * Math.PI / 30 * Math.sin(Math.PI * xc / 15)); }
+    if (fallS || osc || calm || B > 0) { g.position.y = y; g.rotation.x = tw; g.rotation.z = rz; }
+    deckPos.push({ xc, y, tw, down, ok: t >= C.deckS + Math.abs(i - (SEG - 1) / 2) * 0.12 + 0.35 });
   });
-  // cabos principais e pendurais
+  // cabos principais (e cabos de ancoragem depois de n1)
+  const L = towerTop(-1, ang), Rt = towerTop(1, ang);
+  const low = 4.5 - 6 * (fallS ? EZ.i2(P(t, C.fall0, 1.0)) : 0) - (B > 0 ? 0 : 0);
+  const mid = (L.y + Rt.y) / 2 - low;
+  const cy = x => { const u = (x - L.x) / (Rt.x - L.x); return lerp(L.y, Rt.y, u) - mid * 4 * u * (1 - u); };
+  const anchored = t >= C.cable2;
+  const ka = anchored ? EZ.o(P(t, C.cable2, 1.0)) : 0;
   const grow = EZ.o(P(t, C.cables, 1.2));
   R.cablesS.forEach((pool, ci) => {
     const z = ci ? 2.6 : -2.6;
-    if (!on || grow <= 0) { drawPoly(pool, [], 0); return; }
-    const pts = []; for (let x = -36; x <= 36.01; x += 1.5) pts.push(V3(x, cableY(x), z));
+    if (t < C.cables) { drawPoly(pool, [], 0); return; }
+    const pts = [];
+    if (ka > 0.01) pts.push(V3(lerp(L.x, -29.5, ka), lerp(L.y, BANK_Y + 2.1, ka), z));
+    for (let k = 0; k <= 30; k++) { const x = lerp(L.x, Rt.x, k / 30); pts.push(V3(x, cy(x), z)); }
+    if (ka > 0.01) pts.push(V3(lerp(Rt.x, 29.5, ka), lerp(Rt.y, BANK_Y + 2.1, ka), z));
     drawPoly(pool, pts, grow);
   });
+  // pendurais
   let hk = 0;
-  if (on && t >= C.deckS) {
+  if (t >= C.deckS && ang < 0.25) {
     deckPos.forEach(d => {
-      if (Math.abs(d.xc) > 17 || t < C.deckS + Math.abs(d.xc) * 0.012 * 10 || d.down) return;
+      if (!d.ok || d.down) return;
       for (const z of [-2.6, 2.6]) {
         const m = R.hangers.pool[hk++]; if (!m) return;
-        const topY = cableY(d.xc), botY = BANK_Y + d.y + Math.sin(d.tw) * z * 0.85;
+        const topY = cy(d.xc), botY = BANK_Y + d.y + Math.sin(d.tw) * z * 0.85;
+        if (topY - botY < 0.3) { m.visible = false; continue; }
         const a = V3(d.xc, topY, z), b = V3(d.xc, botY, z * 0.85);
         const l = a.distanceTo(b); m.visible = true; m.scale.set(0.05, l, 0.05);
         m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(_up, b.clone().sub(a).normalize());
@@ -841,16 +895,24 @@ function updateSuspension(t) {
     });
   }
   for (; hk < R.hangers.pool.length; hk++) R.hangers.pool[hk].visible = false;
+  // dentes da junta abrem e fecham
+  R.jointDeck.forEach(gd => { if (t > C.teeth + 0.4) gd.position.x += gd.userData.s * 0.22 * Math.sin((t - C.teeth - 0.4) * 2.6); });
 }
-function updateStayed(t) {
-  R.stay.visible = t >= C.pylons;
-  // carros atravessando no final
+function updateCars(t) {
+  const bump = d => Math.max(0, 1 - Math.abs(d) / 0.18);
+  const c = R.jcar;
+  c.visible = between(t, C.car0, S('o1') - 0.8);
+  if (c.visible) {
+    const x = 25 - 6 * (t - C.car0);
+    const y = BANK_Y + (x > 15 ? 0.03 : 0) + 0.14 * (bump(x - 0.55 - 15) + bump(x + 0.55 - 15));
+    c.position.set(x, y, 0.8); c.rotation.set(0, Math.PI, 0.1 * (bump(x - 0.55 - 15) - bump(x + 0.55 - 15)));
+  }
   R.carList.forEach((c, k) => {
     c.visible = t >= C.cars;
     if (!c.visible) return;
     const u = c.userData, dir = u.lane > 0 ? 1 : -1;
-    const x = ((((t - C.cars) * 7 + u.off) % 70) + 70) % 70 - 35;
-    c.position.set(dir > 0 ? x : -x, BANK_Y + 0.05, u.lane); c.rotation.y = dir > 0 ? 0 : Math.PI;
+    const x0 = ((((t - C.cars) * 7 + u.off) % 80) + 80) % 80 - 40, x = dir > 0 ? x0 : -x0;
+    c.position.set(x, BANK_Y + (Math.abs(x) > 15 ? 0.03 : 0), u.lane); c.rotation.y = dir > 0 ? 0 : Math.PI;
     c.scale.setScalar(EZ.back(P(t, C.cars + k * 0.15, 0.4)));
   });
 }
@@ -870,12 +932,22 @@ function updateParticles(t) {
   R.splash.forEach(m => (m.visible = false));
   let s = 0;
   const sp = (t0, x, z, n, seed) => { s = burstPts(t, t0, V3(x, 0.1, z), n, R.splash, s, { life: 1.0, spd: 9, g: 12, size: 0.35, seed }); };
-  sp(C.brk + 0.45, 0, 0, 14, 1);
-  sp(C.crack + 0.45, -3.75, 0, 10, 31);
-  sp(C.trussFall + 0.6, 0, 0, 16, 61);
-  sp(C.fall + 0.75, 0, 0, 18, 91);
-  sp(C.slam - 0.02, -15, 0, 6, 121); sp(C.slam - 0.02, 15, 0, 6, 131);
+  sp(C.brk + 0.45, 0, 0, 12, 1);
+  sp(C.crack + 0.5, 0, 0, 12, 31);
+  sp(C.sink + 0.7, 0, 0, 8, 41);
+  sp(C.bonk, 0, -1.6, 8, 51); sp(C.bonk + 0.75, 0, 0, 8, 57);
+  sp(C.fall0 + 0.9, -9, 0, 8, 61); sp(C.fall0 + 0.9, 9, 0, 8, 67);
+  sp(C.fall + 0.75, 0, 0, 14, 91);
+  // erosão: areia girando em volta do pilar do meio
   R.dust.forEach(m => (m.visible = false));
+  if (between(t, C.scour0, Math.min(C.rwP.a, C.sink + 1.2))) {
+    const k = P(t, C.scour0, 0.5);
+    R.dust.forEach((m, i) => {
+      const a = (t - C.scour0) * 4 + i * 0.7, r = 1.5 + 0.7 * rnd(i);
+      m.visible = true; m.scale.setScalar(0.16 * k);
+      m.position.set(Math.cos(a) * r, BED + 0.15 + rnd(i + 3) * 1.3 + 0.2 * Math.sin(t * 3 + i), Math.sin(a) * r);
+    });
+  }
 }
 
 // ================================================================ câmera
@@ -1064,7 +1136,7 @@ function drawChips(t) {
   ctx.save(); ctx.globalAlpha *= P(t, CHIPS[0].t, 0.4);
   ctx.fillStyle = 'rgba(255,255,255,.85)'; rr(390, 1640, 665, 258, 30); ctx.fill();
   ctx.fillStyle = '#5b6372'; ctx.font = '600 26px F'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('TIPOS DE PONTE', 418, 1676);
+  ctx.fillText('PEÇAS DA PONTE', 418, 1676);
   let x = 414, y = 1716;
   ctx.font = '600 24px F';
   for (const c of vis) {
@@ -1099,9 +1171,8 @@ function drawBubble(t) {
 
 // ================================================================ camada 2D própria das pontes
 function drawEra(t, wt) {
-  const i = eraIndex(wt), a = C.eraKeys[i][0];
-  const k = EZ.back(P(wt, a, 0.45));
-  const txt = ERAS[i].label;
+  if (!between(wt, S('n2') - 0.2, C.rwN.a)) return;
+  const k = EZ.back(P(wt, S('n2') - 0.2, 0.45)), txt = '1940 · TACOMA, EUA';
   ctx.save(); ctx.translate(540, 172); ctx.scale(k, k);
   ctx.font = '700 34px F'; const tw = ctx.measureText(txt).width;
   ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 5;
@@ -1109,163 +1180,71 @@ function drawEra(t, wt) {
   ctx.fillStyle = '#141824'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, 0, 2);
   ctx.restore();
 }
-// moeda / nota de dinheiro
-function money(x, y, s, rot) {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
-  ctx.fillStyle = '#2ecc71'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 6;
-  rr(-80, -42, 160, 84, 12); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = '#1f8f55'; ctx.lineWidth = 4; rr(-66, -30, 132, 60, 8); ctx.stroke();
-  ctx.fillStyle = '#0f5a34'; ctx.font = '700 46px F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('R$', 0, 3);
-  ctx.restore();
-}
-function calendar(x, y, s, t, t0) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.rotate(0.06 * Math.sin(t * 3));
+function thermometer(x, y, s, hot) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
   ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 8;
-  rr(-110, -120, 220, 230, 22); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#e63946'; rr(-110, -120, 220, 70, { upperLeft: 22, upperRight: 22 }); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#141824'; for (const dx of [-55, 55]) { rr(dx - 9, -140, 18, 44, 9); ctx.fill(); }
-  const n = Math.floor((t - t0) * 6);
-  const yrs = 1 + Math.min(9, Math.floor((t - t0) * 2.4));
-  ctx.fillStyle = '#ffffff'; ctx.font = '700 34px F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ANOS', 0, -84);
-  ctx.fillStyle = '#141824'; ctx.font = '700 110px F'; ctx.fillText(String(yrs), 0, 30);
-  // folha virando
-  const f = ((t - t0) * 6) % 1;
-  if (n < 60) { ctx.save(); ctx.globalAlpha = 1 - f; ctx.translate(0, -50); ctx.scale(1, 1 - f); ctx.fillStyle = '#f2f2f2'; ctx.fillRect(-100, 0, 200, 150); ctx.restore(); }
-  ctx.restore();
-}
-// janelinha do túnel de vento: pista quadrada faz redemoinhos, pista aerodinâmica deixa o vento passar
-function windTunnel(t, wt) {
-  const k = EZ.back(P(wt, C.tunnel, 0.45)) * (1 - P(wt, C.stiff + 0.7, 0.3));
-  if (k <= 0) return;
-  const aero = P(wt, C.stiff - 0.2, 0.6);
-  ctx.save(); ctx.translate(540, 600); ctx.scale(k, k);
-  ctx.fillStyle = '#e9f3ff'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 8;
-  rr(-400, -190, 800, 380, 34); ctx.fill(); ctx.stroke();
-  ctx.save(); rr(-396, -186, 792, 372, 30); ctx.clip();
-  // linhas de vento
-  ctx.lineCap = 'round'; ctx.lineWidth = 7;
-  for (let i = 0; i < 9; i++) {
-    const y0 = -150 + i * 37.5;
-    ctx.strokeStyle = `rgba(77,155,255,${0.85})`;
-    ctx.beginPath();
-    for (let x = -400; x <= 400; x += 10) {
-      const defl = Math.sign(y0 || 1) * 60 * Math.exp(-((x / 150) ** 2)) * Math.exp(-((y0 / 120) ** 2));
-      const turb = (1 - aero) * (x > 0 ? 1 : 0) * 26 * Math.sin(x * 0.05 - t * 14 + i) * Math.min(1, x / 120);
-      const y = y0 + defl * (0.6 + 0.4 * aero) + turb;
-      x === -400 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  // redemoinhos atrás da pista quadrada
-  if (aero < 1) {
-    ctx.globalAlpha = 1 - aero; ctx.strokeStyle = '#ff4d3d'; ctx.lineWidth = 7;
-    for (let j = 0; j < 3; j++) {
-      const cx = 120 + j * 100 + ((t * 180) % 100), cy = (j % 2 ? 1 : -1) * 40;
-      ctx.beginPath(); ctx.arc(cx, cy, 28, t * 8 + j, t * 8 + j + 4.5); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-  // corte da pista: retângulo → asa
-  ctx.fillStyle = '#5d6675'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 7;
-  const wob = (1 - aero) * 0.18 * Math.sin(t * 9);
-  ctx.save(); ctx.rotate(wob);
-  ctx.beginPath();
-  const hw = 150, hh = lerp(38, 22, aero);
-  ctx.moveTo(-hw, -hh);
-  ctx.lineTo(hw, -hh * (1 - aero));
-  ctx.lineTo(hw + 40 * aero, 0);
-  ctx.lineTo(hw, hh * (1 - aero) + 0.01);
-  ctx.lineTo(-hw, hh);
-  ctx.quadraticCurveTo(-hw - 60 * aero, 0, -hw, -hh);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.restore();
-  ctx.restore();
-  ctx.fillStyle = '#141824'; rr(-210, -232, 420, 64, 32); ctx.fill();
-  ctx.fillStyle = '#ffffff'; ctx.font = '700 36px F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('TÚNEL DE VENTO', 0, -199);
-  // selo de aprovado quando fica aerodinâmica
-  if (aero > 0.5) {
-    const s = EZ.back(P(wt, C.stiff + 0.35, 0.35));
-    ctx.save(); ctx.translate(290, 120); ctx.scale(s, s); ctx.rotate(-0.15);
-    ctx.fillStyle = '#2ecc71'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 6; circ(0, 0, 54); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ffffff'; ctx.font = '700 64px F'; ctx.fillText('✓', 0, 4); ctx.restore();
-  }
-  ctx.restore();
-}
-// cartão da Ponte Octávio Frias (São Paulo): mastro em X e duas pistas curvas
-function cardSP(t, wt) {
-  const t1 = E('e4') + 0.3;
-  if (wt < C.card || wt > t1 + 0.3) return;
-  const k = EZ.back(P(wt, C.card, 0.45)) * (1 - P(wt, t1, 0.3));
-  ctx.save(); ctx.translate(540, 610); ctx.scale(k, k); ctx.rotate(-0.025);
-  ctx.fillStyle = 'rgba(0,0,0,.25)'; rr(-330, -222, 660, 470, 32); ctx.fill();
-  const sky = ctx.createLinearGradient(0, -230, 0, 230); sky.addColorStop(0, '#ffb36b'); sky.addColorStop(1, '#ffe2b0');
-  ctx.fillStyle = sky; ctx.strokeStyle = '#141824'; ctx.lineWidth = 8; rr(-330, -230, 660, 460, 32); ctx.fill(); ctx.stroke();
-  ctx.save(); rr(-326, -226, 652, 452, 28); ctx.clip();
-  // prédios
-  ctx.fillStyle = '#9aa3b6';
-  for (let i = 0; i < 12; i++) { const h = 60 + rnd(i + 40) * 120; ctx.fillRect(-330 + i * 56, 150 - h, 46, h + 80); }
-  // rio
-  ctx.fillStyle = '#4d8fc9'; ctx.fillRect(-330, 150, 660, 80);
-  // mastro em X
-  const grow = EZ.o(P(wt, C.card + 0.2, 0.6));
-  const top = lerp(150, -170, grow);
-  ctx.strokeStyle = '#141824'; ctx.lineWidth = 22; ctx.lineCap = 'round';
-  line(-70, 150, 50, top); line(70, 150, -50, top);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 13;
-  line(-70, 150, 50, top); line(70, 150, -50, top);
-  // estais em leque
-  if (grow > 0.5) {
-    const q = P(wt, C.card + 0.5, 0.6);
-    ctx.strokeStyle = '#f2c94c'; ctx.lineWidth = 3;
-    for (let i = 1; i <= 7; i++) for (const s of [-1, 1]) {
-      const ax = s * lerp(8, 30, i / 7), ay = lerp(top + 20, top + 120, i / 7);
-      const bx = s * (40 + i * 34), by = 108 + (i * i) * 0.4;
-      line(ax, ay, lerp(ax, bx, q), lerp(ay, by, q));
-    }
-  }
-  // duas pistas curvas que se cruzam no mastro
-  ctx.strokeStyle = '#141824'; ctx.lineWidth = 16;
-  for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-330, 110 + s * 6); ctx.quadraticCurveTo(0, 100 - s * 30, 330, 110 - s * 6); ctx.stroke(); }
-  ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 9;
-  for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-330, 110 + s * 6); ctx.quadraticCurveTo(0, 100 - s * 30, 330, 110 - s * 6); ctx.stroke(); }
-  ctx.restore();
-  ctx.fillStyle = '#141824'; rr(-300, -282, 600, 74, 37); ctx.fill();
-  ctx.fillStyle = '#ffd23f'; ctx.font = '700 38px F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('PONTE OCTÁVIO FRIAS', 0, -244);
-  ctx.fillStyle = '#ffffff'; rr(-170, 196, 340, 64, 32); ctx.fill(); ctx.strokeStyle = '#141824'; ctx.lineWidth = 5; ctx.stroke();
-  ctx.fillStyle = '#141824'; ctx.font = '700 32px F'; ctx.fillText('SÃO PAULO · 2008', 0, 229);
+  rr(-32, -170, 64, 260, 32); ctx.fill(); ctx.stroke(); circ(0, 110, 56); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e63946'; circ(0, 110, 40); ctx.fill();
+  const h = 40 + 200 * hot; rr(-16, 100 - h, 32, h, 16); ctx.fill();
+  ctx.strokeStyle = '#141824'; ctx.lineWidth = 5; for (let k = 0; k < 6; k++) line(18, -130 + k * 38, 32, -130 + k * 38);
   ctx.restore();
 }
 function failOverlays(t, wt) {
-  // pênsil cara e demorada: dinheiro voando e calendário correndo
-  if (between(wt, C.cost, C.rwE.a)) {
-    for (let i = 0; i < 9; i++) {
-      const a = wt - C.cost - i * 0.16; if (a < 0) continue;
-      const x = 160 + rnd(i + 3) * 760, y = 1250 - a * (380 + rnd(i) * 200);
-      if (y < 200) continue;
-      money(x, y, 0.75 + rnd(i + 9) * 0.4, Math.sin(a * 4 + i) * 0.4);
+  // raio-x da fundação
+  const xk = between(wt, C.xray0, C.xray1 + 0.4) ? Math.min(P(wt, C.xray0, 0.3), 1 - P(wt, C.xray1, 0.4)) : 0;
+  if (xk > 0) {
+    ctx.save(); ctx.globalAlpha = xk;
+    ctx.fillStyle = 'rgba(40,140,255,.10)'; ctx.fillRect(0, 0, W, H);
+    ctx.translate(540, 290); ctx.scale(EZ.back(P(wt, C.xray0, 0.4)), EZ.back(P(wt, C.xray0, 0.4)));
+    ctx.fillStyle = '#141824'; rr(-150, -40, 300, 80, 40); ctx.fill();
+    ctx.fillStyle = '#7fd3ff'; ctx.font = '700 46px F'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('RAIO-X', 0, 3);
+    ctx.restore();
+    // camadas
+    if (wt > C.rock - 0.6) {
+      const k = EZ.back(P(wt, C.rock - 0.6, 0.4));
+      ctx.save(); ctx.globalAlpha = xk;
+      for (const [txt, v, col] of [['AREIA', V3(-11, BED - 2, 5), '#d9b97c'], ['ROCHA', V3(-11, ROCK - 1.2, 5), '#b8b2aa']]) {
+        const [x, y, z] = project(v); if (z > 1) continue;
+        ctx.save(); ctx.translate(cl(x, 140, 940), y); ctx.scale(k, k);
+        ctx.font = '700 40px F'; const tw = ctx.measureText(txt).width;
+        ctx.fillStyle = col; ctx.strokeStyle = '#141824'; ctx.lineWidth = 5; rr(-tw / 2 - 20, -30, tw + 40, 60, 30); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#141824'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, 0, 3); ctx.restore();
+      }
+      ctx.restore();
     }
-    calendar(820, 540, EZ.back(P(wt, C.cost + 0.5, 0.4)), t, C.cost + 0.5);
   }
-  windTunnel(t, wt);
-  cardSP(t, wt);
+  // calor: o aço estica
+  if (between(wt, C.heat, C.rwJ.a)) {
+    const k = P(wt, C.heat, 0.5);
+    ctx.save(); ctx.globalAlpha = 0.22 * k; ctx.fillStyle = '#ff7a1a'; ctx.fillRect(0, 0, W, H); ctx.restore();
+    // sol
+    const s = EZ.back(P(wt, C.heat, 0.5));
+    ctx.save(); ctx.translate(860, 420); ctx.scale(s, s); ctx.rotate(t * 0.8);
+    ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = '#141824'; ctx.lineWidth = 7;
+    for (let i = 0; i < 10; i++) { ctx.save(); ctx.rotate(i * Math.PI / 5); rr(-12, -150, 24, 50, 12); ctx.fill(); ctx.stroke(); ctx.restore(); }
+    circ(0, 0, 85); ctx.fill(); ctx.stroke(); ctx.restore();
+    thermometer(170, 560, s, P(wt, C.heat + 0.3, 1.2));
+    ctx.save(); ctx.globalAlpha = P(wt, C.heat + 0.6, 0.3); bigWord('45°C', 170, 760, 72, '#ff5a3c'); ctx.restore();
+  }
 }
 function comic(t, wt) {
   const word = (t0, dur, v, txt, size, col) => {
     if (wt < t0 || wt > t0 + dur) return;
     const [x, y, z] = project(v); if (z > 1) return;
     const k = P(wt, t0, dur);
-    ctx.save(); ctx.translate(cl(x, 260, 820), cl(y - 120, 260, 1300)); ctx.scale(EZ.back(cl(k * 3)), EZ.back(cl(k * 3))); ctx.rotate(-0.1); ctx.globalAlpha *= 1 - P(wt, t0 + dur * 0.7, dur * 0.3);
+    const hw = size * 0.32 * txt.length + 30; ctx.save(); ctx.translate(cl(x, Math.min(540, hw), Math.max(540, W - hw)), cl(y - 120, 300, 1300)); ctx.scale(EZ.back(cl(k * 3)), EZ.back(cl(k * 3))); ctx.rotate(-0.1); ctx.globalAlpha *= 1 - P(wt, t0 + dur * 0.7, dur * 0.3);
     bigWord(txt, 0, 0, size, col); ctx.restore();
   };
   if (!inRewind(t)) {
     word(C.slam, 0.7, V3(0, BANK_Y + 1, 0), 'TUM!', 120, '#ffd23f');
     word(C.brk + 0.4, 1.1, V3(0, 1.5, 0), 'SPLASH!', 130, '#4d9bff');
-    word(C.crack, 1.0, V3(-3.75, 3, 0), 'CRACK!', 120, '#ff5a3c');
-    word(C.bonk, 1.0, V3(-3.75, 5, 4.5), 'BONK!', 120, '#ffd23f');
-    word(C.trussFall + 0.8, 1.0, V3(0, 3, 0), 'CRASH!', 130, '#ff5a3c');
+    word(C.crack, 1.0, V3(0, 3, 0), 'CRACK!', 120, '#ff5a3c');
+    word(C.sink + 0.5, 1.0, V3(0, 2, 0), 'CRASH!', 120, '#ff5a3c');
+    word(C.bonk, 1.0, V3(0, 5, -2), 'BONK!', 130, '#ffd23f');
+    word(C.fall0 + 0.9, 1.0, V3(0, 6, 0), 'CRASH!', 130, '#ff5a3c');
     word(C.fall + 0.8, 1.2, V3(0, 3, 0), 'CRASH!', 140, '#ff5a3c');
+    word(C.buckle + 0.5, 1.0, V3(0, 4, 0), 'CREC!', 120, '#ff5a3c');
+    word(C.tuque - 0.05, 1.3, V3(15, BANK_Y + 1.2, 0.8), 'TUQUE TUQUE!', 96, '#ffd23f');
   }
   // gancho: os 2 primeiros segundos
   if (t < 1.9) {
@@ -1347,10 +1326,14 @@ function setup(tl) {
   computeCues();
   buildCaptions();
   buildWords();
-  buildWorld(); buildPlank(); buildBeam(); buildArch(); buildTruss(); buildSuspension(); buildStayed(); buildParticles();
+  scene.background = gradientTex([[0, '#3d7ad6'], [0.6, '#8dbff0'], [1, '#d4ebfb']]);
+  sun.position.set(30, 55, 35); sun.target.position.set(0, 0, 0);
+  Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -30, near: 1, far: 160 }); sun.shadow.camera.updateProjectionMatrix();
+  buildWorld(); buildPlank(); buildBeam(); buildSuspension(); buildParticles();
+  R.sand.renderOrder = 1; R.terrain.renderOrder = 2; R.water.renderOrder = 3;
   HOST = makeHost(hostScene);
   const HS = 2.4;
-  HOSTW_PLACE = grp(null, 28, BANK_Y + 1.68 * HS, 5); HOSTW_PLACE.scale.setScalar(HS);
+  HOSTW_PLACE = grp(null, 23, groundY(23, 6) + 1.68 * HS, 6); HOSTW_PLACE.scale.setScalar(HS);
   HOSTW = makeHost(HOSTW_PLACE);
 }
 
