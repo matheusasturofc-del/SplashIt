@@ -142,7 +142,7 @@ function computeCues() {
   CK.push([C.wind + 0.4, [0, 5, 0, 56, 0.85, 0.15, 40]], [C.rwN.b, [0, 5, 0, 56, 0.9, 0.15, 40]]);
   CK.push([C.truss0 + 0.5, [0, 3, 0, 26, 0.5, 0.14, 40]], [E('t1'), [0, 3, 0, 32, 0.7, 0.16, 40]]);
   CK.push([C.heat + 0.5, [0, 3, 0, 36, 0.22, 0.1, 40]], [C.rwJ.b, [0, 3, 0, 36, 0.25, 0.1, 40]]);
-  CK.push([C.joint0 + 0.5, [15.1, 2.1, 0.3, 8, -0.45, 0.55, 40]], [C.car0, [15.3, 2.2, 0.5, 9, -0.6, 0.42, 40]], [E('j3'), [15.3, 2.2, 0.5, 9.5, -0.7, 0.4, 40]]);
+  CK.push([C.joint0 + 0.5, [15.0, 2.05, 0, 10, -1.5708, 0.9, 40]], [C.car0, [15.0, 2.2, 0.3, 11, -1.45, 0.7, 40]], [E('j3'), [15.0, 2.2, 0.3, 11.5, -1.4, 0.68, 40]]);
   CK.push([C.cars + 0.4, [0, 4, 0, 40, 0.95, 0.14, 40]], [C.hostWorld, [0, 4, 0, 40, 1.0, 0.14, 40]]);
   CK.push([C.hostWorld + 0.9, [14, 9, 0, 50, 1.15, 0.12, 42]], [TL.duration, [14, 9, 0, 51, 1.22, 0.14, 42]]);
   C.camKeys = sortK(CK);
@@ -561,7 +561,7 @@ function buildSuspension() {
   R.hangers = cylPool(SEG * 2, 0.05, M('#cfd4dc', { metalness: 0.5 }));
   // juntas de dilatação: dentes de aço intercalados nas duas pontas
   R.jointDeck = []; R.jointBank = [];
-  const steel = M('#b9c0c8', { metalness: 0.6, roughness: 0.35 });
+  const steel = M('#4e5661', { metalness: 0.5, roughness: 0.35 });
   for (const s of [-1, 1]) {
     const gd = grp(R.susp), gb = grp(R.susp);
     for (let k = 0; k <= 10; k++) {
@@ -737,10 +737,10 @@ function updateWorld(t) {
   const xk = between(t, C.xray0, C.xray1 + 0.4) ? Math.min(P(t, C.xray0, 0.4), 1 - P(t, C.xray1, 0.4)) : 0;
   const on = xk > 0;
   if (on !== _xrayOn) { _xrayOn = on; R.terrainMat.transparent = on; R.terrainMat.depthWrite = !on; R.terrainMat.needsUpdate = true; }
-  R.terrainMat.opacity = 1 - 0.7 * xk;
-  R.sand.visible = R.rock.visible = on; R.sandMat.opacity = 0.5 * xk;
+  R.terrainMat.opacity = 1 - 0.85 * xk;
+  R.sand.visible = R.rock.visible = on; R.sandMat.opacity = 0.85 * xk;
   const sk = between(t, C.scour0, C.rwP.a) ? P(t, C.scour0, 0.4) : 0;
-  R.waterMat.opacity = 0.9 - 0.35 * sk - 0.6 * xk;
+  R.waterMat.opacity = 0.9 - 0.35 * sk - 0.75 * xk;
   updatePlank(t);
   updateBeam(t);
   updateSuspension(t);
