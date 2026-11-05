@@ -1,0 +1,160 @@
+{
+  "title": "Bunker",
+  "header": [
+    "COMO CONSTRUIR UM ",
+    "BUNKER"
+  ],
+  "engine": "chatterbox",
+  "chatterbox": {
+    "ref": "ref_faber.wav",
+    "exaggeration": 0.6,
+    "cfg": 0.3
+  },
+  "voicePitch": 1.0,
+  "voice": "pt_BR-faber-medium",
+  "lengthScale": 0.97,
+  "gapLine": 0.1,
+  "gapBeat": 0.3,
+  "beats": [
+    {
+      "id": "hook",
+      "lines": [
+        {
+          "id": "h1",
+          "text": "Se você se esconder do fim do mundo no porão de casa,",
+          "pad": 0.2
+        },
+        {
+          "id": "h2",
+          "text": "na primeira explosão, a casa inteira desaba em cima de você.",
+          "pad": 1.2
+        }
+      ]
+    },
+    {
+      "id": "caixa",
+      "lines": [
+        {
+          "id": "c1",
+          "text": "Então você cava fundo no quintal e enterra uma caixa de concreto com paredes de um metro. Esse é o bunker.",
+          "hl": "bunker"
+        }
+      ]
+    },
+    {
+      "id": "porta",
+      "lines": [
+        {
+          "id": "p1",
+          "text": "Mas a porta comum voa longe com a onda de choque.",
+          "pad": 1.2
+        },
+        {
+          "id": "p2",
+          "text": "Então você instala uma porta de aço maciço, de duas toneladas. Essa é a porta blindada.",
+          "hl": "porta blindada"
+        },
+        {
+          "id": "p3",
+          "text": "Mas duas toneladas nem você consegue abrir.",
+          "pad": 1.2
+        },
+        {
+          "id": "p4",
+          "text": "Então ela gira em dobradiças com rolamentos, e trava com um volante que empurra vários pinos de aço.",
+          "hl": "volante"
+        }
+      ]
+    },
+    {
+      "id": "ar",
+      "lines": [
+        {
+          "id": "a1",
+          "text": "Mas lá fora o ar está cheio de fumaça e poeira.",
+          "pad": 1.2
+        },
+        {
+          "id": "a2",
+          "text": "Então o ar entra por um filtro de carvão, que segura a sujeira e deixa passar o ar limpo. Esse é o filtro de ar.",
+          "hl": "filtro"
+        }
+      ]
+    },
+    {
+      "id": "luz",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Mas sem energia lá fora, a luz apaga.",
+          "pad": 1.2
+        },
+        {
+          "id": "l2",
+          "text": "Então você põe um gerador e um banco de baterias. Mas o motor solta fumaça e enche o bunker.",
+          "pad": 1.2
+        },
+        {
+          "id": "l3",
+          "text": "Então a fumaça sai por uma chaminé escondida no jardim. Esse é o escapamento.",
+          "hl": "escapamento"
+        }
+      ]
+    },
+    {
+      "id": "comida",
+      "lines": [
+        {
+          "id": "f1",
+          "text": "Mas a comida e a água acabam em uma semana.",
+          "pad": 1.2
+        },
+        {
+          "id": "f2",
+          "text": "Então você enche um tanque de água e prateleiras de enlatados pra um ano inteiro. Essa é a despensa.",
+          "hl": "despensa"
+        }
+      ]
+    },
+    {
+      "id": "ceu",
+      "lines": [
+        {
+          "id": "v1",
+          "text": "Mas meses sem ver o céu deixam qualquer um maluco.",
+          "pad": 1.2
+        },
+        {
+          "id": "v2",
+          "text": "Então um periscópio sobe escondido num arbusto e mostra o lado de fora. Esse é o periscópio.",
+          "hl": "periscópio"
+        }
+      ]
+    },
+    {
+      "id": "decor",
+      "lines": [
+        {
+          "id": "d1",
+          "text": "Agora monte: beliches, uma mesa de jogos, um rádio e um mapa na parede."
+        }
+      ]
+    },
+    {
+      "id": "final",
+      "lines": [
+        {
+          "id": "o1",
+          "text": "Obra entregue: você construiu um bunker.",
+          "hl": "Obra entregue",
+          "pad": 0.4
+        },
+        {
+          "id": "o2",
+          "text": "Comenta aqui qual obra eu construo no próximo vídeo.",
+          "pad": 1.2
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "title": "Casa na árvore",
+  "header": [
+    "COMO CONSTRUIR UMA ",
+    "CASA NA ÁRVORE"
+  ],
+  "engine": "chatterbox",
+  "chatterbox": {
+    "ref": "ref_faber.wav",
+    "exaggeration": 0.6,
+    "cfg": 0.3
+  },
+  "voicePitch": 1.0,
+  "voice": "pt_BR-faber-medium",
+  "lengthScale": 0.97,
+  "gapLine": 0.1,
+  "gapBeat": 0.3,
+  "beats": [
+    {
+      "id": "hook",
+      "lines": [
+        {
+          "id": "h1",
+          "text": "Se você pregar umas tábuas num galho pra fazer uma casa na árvore,",
+          "pad": 0.2
+        },
+        {
+          "id": "h2",
+          "text": "o galho enverga e você cai lá de cima junto com tudo.",
+          "pad": 1.2
+        }
+      ]
+    },
+    {
+      "id": "vigas",
+      "lines": [
+        {
+          "id": "v1",
+          "text": "Então você apoia o piso no tronco, em vigas presas por parafusos de aço bem grossos. Essa é a plataforma.",
+          "hl": "plataforma"
+        },
+        {
+          "id": "v2",
+          "text": "Mas quando venta, a árvore balança e arranca as vigas.",
+          "pad": 1.2
+        },
+        {
+          "id": "v3",
+          "text": "Então uma das vigas fica num suporte que desliza, e deixa a árvore balançar sem quebrar nada. Esse é o apoio flutuante.",
+          "hl": "apoio flutuante"
+        }
+      ]
+    },
+    {
+      "id": "escada",
+      "lines": [
+        {
+          "id": "e1",
+          "text": "Mas a escada de corda gira, e você despenca na subida.",
+          "pad": 1.2
+        },
+        {
+          "id": "e2",
+          "text": "Então você monta uma escada em caracol em volta do tronco, com corrimão. Essa é a escada caracol.",
+          "hl": "escada caracol"
+        }
+      ]
+    },
+    {
+      "id": "teto",
+      "lines": [
+        {
+          "id": "t1",
+          "text": "Mas na primeira chuva, a água entra por todas as frestas.",
+          "pad": 1.2
+        },
+        {
+          "id": "t2",
+          "text": "Então você cobre com um telhado inclinado e uma calha que leva a água pra longe. Esse é o telhado.",
+          "hl": "telhado"
+        }
+      ]
+    },
+    {
+      "id": "balde",
+      "lines": [
+        {
+          "id": "b1",
+          "text": "Mas subir com lanche na mão é impossível.",
+          "pad": 1.2
+        },
+        {
+          "id": "b2",
+          "text": "Então você pendura um balde numa roldana e puxa tudo lá pra cima. Essa é a roldana.",
+          "hl": "roldana"
+        }
+      ]
+    },
+    {
+      "id": "tirolesa",
+      "lines": [
+        {
+          "id": "z1",
+          "text": "E pra descer, nada de escada: um cabo esticado até o chão, e você desce voando. Essa é a tirolesa.",
+          "hl": "tirolesa"
+        }
+      ]
+    },
+    {
+      "id": "decor",
+      "lines": [
+        {
+          "id": "d1",
+          "text": "Agora decore: uma rede, luzinhas, um binóculo e uma bandeira lá no alto."
+        }
+      ]
+    },
+    {
+      "id": "final",
+      "lines": [
+        {
+          "id": "o1",
+          "text": "Obra entregue: você construiu uma casa na árvore.",
+          "hl": "Obra entregue",
+          "pad": 0.4
+        },
+        {
+          "id": "o2",
+          "text": "Comenta aqui qual obra eu construo no próximo vídeo.",
+          "pad": 1.2
+        }
+      ]
+    }
+  ]
+}
