@@ -117,7 +117,7 @@ function computeCues() {
   CK.push([C.roof + 0.3, [0, 9, 1, 25, 0.35, 0.12, 40]], [E('t2'), [0.5, 9, 1, 24, 0.45, 0.1, 40]]);
   CK.push([C.carry + 0.2, [1, 3.5, 2.5, 18, 0.3, 0.06, 40]], [C.rwB.b, [1, 3.5, 2.5, 18, 0.3, 0.06, 40]]);
   CK.push([C.pulley + 0.3, [4, 5, 3.5, 24, 0.5, 0.06, 40]], [E('b2'), [4, 6.5, 3.5, 22, 0.55, 0.06, 40]]);
-  CK.push([C.cable + 0.3, [-6, 6, 4.5, 26, 0.5, 0.1, 40]], [C.zip, [-4.5, 7.2, 4.8, 16, 0.75, 0.06, 40]], [C.zip + 1.1, [-14.5, 4.5, 7.2, 16, 0.75, 0.06, 40]], [C.zip + 2.3, [-24.5, 1.5, 9.6, 15, 0.75, 0.06, 40]], [E('z1') + 0.2, [-24.5, 1.5, 9.6, 15, 0.8, 0.06, 40]]);
+  CK.push([C.cable + 0.3, [-6, 6, 4.5, 26, 0.5, 0.1, 40]], [C.zip, [-4.5, 7.2, 4.8, 16, 0.75, 0.06, 40]], [C.zip + 2.2, [-24.5, 1.5, 9.6, 15, 0.75, 0.06, 40], 'lin'], [E('z1') + 0.2, [-24.5, 1.5, 9.6, 15, 0.8, 0.06, 40]]);
   CK.push([C.hammock + 0.2, [0, 8, 2, 22, 0.35, 0.08, 40]], [E('d1'), [0, 8.5, 2, 24, 0.3, 0.08, 40]]);
   CK.push([C.stamp - 0.3, [0, 9.5, 0, 38, 0.3, 0.06, 42]], [TL.duration, [0, 9.5, 0, 39, 0.22, 0.06, 42]]);
   C.camKeys = sortK(CK);
@@ -387,11 +387,11 @@ function buildWorld() {
   for (const [a, b, r] of [[V3(-0.6, 13.5, -0.4), V3(-6.5, 16.5, -2.5), 0.32], [V3(0.3, 14.5, 0.6), V3(3.5, 18.5, 3), 0.28], [V3(-0.2, 15, -0.6), V3(1, 19.5, -5), 0.3]]) member(R.tree, a, b, r, barkD);
   const leaf = [LP('#3f9a4a'), LP('#4caf50'), LP('#5bbd55'), LP('#378b40')];
   R.canopy = grp(R.tree);
-  for (const [x, y, z, s] of [[0, 19, 0, 5.6], [-5, 17.5, -2, 4.2], [4.5, 18, 2.5, 4.0], [1.5, 22, -1.5, 4.2], [-2.5, 21, 2.5, 3.6], [5.5, 16.5, -3, 3.2], [-6.5, 16, 3, 3.0], [2, 16.2, 5, 3.0], [8.5, 15, 0.5, 2.6]]) { const m = mesh(ICO, leaf[Math.floor(rnd(x + y) * 4)]); m.scale.set(s, s * 0.85, s); m.position.set(x, y, z); m.rotation.set(rnd(x) * 2, rnd(y) * 2, 0); R.canopy.add(m); }
+  for (const [x, y, z, s] of [[0, 19, 0, 5.6], [-5, 17.5, -2, 4.2], [4.5, 18, 2.5, 4.0], [1.5, 22, -1.5, 4.2], [-2.5, 21, 2.5, 3.6], [5.0, 17.2, -4.6, 3.0], [-6.5, 16, 3, 3.0], [2, 16.2, 5, 3.0], [9.5, 17.5, -2.5, 2.4]]) { const m = mesh(ICO, leaf[Math.floor(rnd(x + y) * 4)]); m.scale.set(s, s * 0.85, s); m.position.set(x, y, z); m.rotation.set(rnd(x) * 2, rnd(y) * 2, 0); R.canopy.add(m); }
   // galho do gancho, com tábuas pregadas
   R.branch = grp(R.tree, 0.8, 11.9, 0);
   member(R.branch, V3(0, 0, 0), V3(8.8, 0.15, 0), 0.32, barkD);
-  const lf = mesh(ICO, leaf[1]); lf.scale.setScalar(1.6); lf.position.set(9.2, 0.6, 0); R.branch.add(lf);
+  const lf = mesh(ICO, leaf[1]); lf.scale.setScalar(0.9); lf.position.set(9.4, 0.4, -0.6); R.branch.add(lf);
   R.hookPlanks = [];
   for (let k = 0; k < 5; k++) { const p = boxC(4.2, 0.3, -0.95 + k * 0.4, 8.4, 0.45, -0.6 + k * 0.4, M('#c89b6a'), R.branch); p.userData.p0 = p.position.clone(); R.hookPlanks.push(p); }
 }
@@ -633,7 +633,7 @@ function updateHost(t, HOST) {
 // ================================================================ atualização do mundo (t = tempo do mundo)
 const CAMYAW = 0.3;
 const ZIP0 = V3(-3.8, 8.9, 4.6), ZIP1 = V3(-26, 2.5, 10);
-const zipU = t => EZ.io(P(t, C.zip, 2.2));
+const zipU = t => P(t, C.zip, 2.2);
 const bucketY = t => t > C.lift ? lerp(0, FLOOR + 0.25, EZ.io(P(t, C.lift, 1.3))) : 0;
 function updateWorld(t) {
   applyAsm(t);
