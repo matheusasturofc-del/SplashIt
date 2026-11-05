@@ -44,7 +44,7 @@ function speedLines(g, x0, x1, y0, y1) {
   const hb = g.createLinearGradient(0, 0, 1280, 0); hb.addColorStop(0, '#121829'); hb.addColorStop(1, '#2b3a63');
   g.fillStyle = hb; g.fillRect(0, 0, 1280, 720);
   g.save(); g.beginPath(); g.moveTo(600, 0); g.lineTo(1280, 0); g.lineTo(1280, 720); g.lineTo(520, 720); g.closePath(); g.clip();
-  g.drawImage(bg, 60, 600, 1020, 1020, 560, 0, 720, 720);
+  g.drawImage(bg, 30, 640, 1020, 1020, 560, 0, 720, 720);
   g.restore();
   g.strokeStyle = '#ffd23f'; g.lineWidth = 10; g.beginPath(); g.moveTo(600, 0); g.lineTo(520, 720); g.stroke();
   stroked(g, 'BASE', 50, 170, 100, '#ffffff', '#10131a', 0.2, 'left');
