@@ -4,3 +4,4 @@ voices/
 *.mp4
 __pycache__/
 v1_historia/
+node_modules
