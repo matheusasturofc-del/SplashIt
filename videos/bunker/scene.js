@@ -1039,7 +1039,7 @@ function comic(t, wt) {
     const pulse = 1 + 0.06 * Math.sin(t * 16);
     ctx.save(); ctx.translate(540, 520); ctx.scale(k * pulse, k * pulse); ctx.rotate(-0.06);
     bigWord('VAI', 0, -95, 150, '#ffffff');
-    bigWord('SOBREVIVER?', 0, 70, 128, '#ffd23f');
+    ctx.letterSpacing = '10px'; bigWord('SOBREVIVER?', 0, 70, 120, '#ffd23f'); ctx.letterSpacing = '0px';
     ctx.restore();
   }
 }

@@ -82,6 +82,7 @@ async function renderRange(browser, url, timeline, from, to, file, tag) {
     const t0 = Date.now();
     await Promise.all(Array.from({ length: workers }, (_, w) => {
       const file = path.join(BUILD, `parte_${w}.mp4`); parts.push(file);
+      if (process.env.PART !== undefined && +process.env.PART !== w) return null;  // re-renderiza só uma parte
       return renderRange(browser, url, timeline, w * per, Math.min(n, (w + 1) * per), file, `w${w}`);
     }));
     const list = path.join(BUILD, 'partes.txt');

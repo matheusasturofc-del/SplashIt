@@ -33,7 +33,7 @@ function speedLines(g, x0, x1, y0, y1) {
   g.fillStyle = '#5aa9f0'; g.fillRect(0, 0, 1080, 150);
   const top = g.createLinearGradient(0, 0, 0, 560); top.addColorStop(0, 'rgba(10,14,28,.92)'); top.addColorStop(1, 'rgba(10,14,28,0)');
   g.fillStyle = top; g.fillRect(0, 0, 1080, 560);
-  stroked(g, 'SOBREVIVER', 540, 160, 120, '#ffffff');
+  g.letterSpacing = '10px'; stroked(g, 'SOBREVIVER', 540, 160, 112, '#ffffff'); g.letterSpacing = '0px';
   stroked(g, 'AO FIM DO', 540, 300, 120, '#ffffff');
   stroked(g, 'MUNDO?', 540, 470, 170, '#ffd23f');
 
@@ -47,7 +47,7 @@ function speedLines(g, x0, x1, y0, y1) {
   g.drawImage(bg, 60, 600, 1020, 1020, 560, 0, 720, 720);
   g.restore();
   g.strokeStyle = '#ffd23f'; g.lineWidth = 10; g.beginPath(); g.moveTo(600, 0); g.lineTo(520, 720); g.stroke();
-  stroked(g, 'SOBREVIVER', 50, 170, 92, '#ffffff', '#10131a', 0.2, 'left');
+  g.letterSpacing = '8px'; stroked(g, 'SOBREVIVER', 50, 170, 86, '#ffffff', '#10131a', 0.2, 'left'); g.letterSpacing = '0px';
   stroked(g, 'AO FIM DO', 50, 290, 92, '#ffffff', '#10131a', 0.2, 'left');
   stroked(g, 'MUNDO?', 50, 430, 130, '#ffd23f', '#10131a', 0.2, 'left');
   stroked(g, 'BUNKER', 50, 540, 84, '#ff8a2a', '#10131a', 0.2, 'left');
