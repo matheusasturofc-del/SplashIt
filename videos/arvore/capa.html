@@ -33,9 +33,9 @@ function speedLines(g, x0, x1, y0, y1) {
   g.fillStyle = '#5aa9f0'; g.fillRect(0, 0, 1080, 150);
   const top = g.createLinearGradient(0, 0, 0, 560); top.addColorStop(0, 'rgba(10,14,28,.92)'); top.addColorStop(1, 'rgba(10,14,28,0)');
   g.fillStyle = top; g.fillRect(0, 0, 1080, 560);
-  stroked(g, 'COMO FAZER', 540, 160, 120, '#ffffff');
-  stroked(g, 'UMA PONTE', 540, 300, 120, '#ffffff');
-  stroked(g, 'QUE NÃO CAI?', 540, 460, 150, '#ffd23f');
+  stroked(g, 'A CASA NA', 540, 160, 120, '#ffffff');
+  stroked(g, 'ÁRVORE', 540, 300, 120, '#ffffff');
+  stroked(g, 'PERFEITA', 540, 470, 170, '#ffd23f');
 
   g.save(); g.beginPath(); g.arc(950, 1800, 95, 0, 7); g.closePath(); g.clip(); g.drawImage(logo, 855, 1705, 190, 190); g.restore();
   g.strokeStyle = '#fff'; g.lineWidth = 8; g.beginPath(); g.arc(950, 1800, 95, 0, 7); g.stroke();
@@ -47,10 +47,9 @@ function speedLines(g, x0, x1, y0, y1) {
   g.drawImage(bg, 60, 600, 1020, 1020, 560, 0, 720, 720);
   g.restore();
   g.strokeStyle = '#ffd23f'; g.lineWidth = 10; g.beginPath(); g.moveTo(600, 0); g.lineTo(520, 720); g.stroke();
-  stroked(g, 'COMO FAZER', 50, 170, 92, '#ffffff', '#10131a', 0.2, 'left');
-  stroked(g, 'UMA PONTE', 50, 290, 92, '#ffffff', '#10131a', 0.2, 'left');
-  stroked(g, 'QUE NÃO', 50, 420, 120, '#ffd23f', '#10131a', 0.2, 'left');
-  stroked(g, 'CAI?', 50, 540, 120, '#ffd23f', '#10131a', 0.2, 'left');
+  stroked(g, 'A CASA', 50, 170, 100, '#ffffff', '#10131a', 0.2, 'left');
+  stroked(g, 'NA ÁRVORE', 50, 290, 100, '#ffffff', '#10131a', 0.2, 'left');
+  stroked(g, 'PERFEITA', 50, 430, 120, '#ffd23f', '#10131a', 0.2, 'left');
   g.save(); g.beginPath(); g.arc(120, 610, 62, 0, 7); g.closePath(); g.clip(); g.drawImage(logo, 58, 548, 124, 124); g.restore();
   stroked(g, 'OBRA ENTREGUE', 200, 630, 44, '#ffffff', '#10131a', 0.18, 'left');
   window.done = true;

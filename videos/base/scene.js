@@ -377,7 +377,7 @@ function buildWorld() {
   boxC(-8.4, 0, -6.4, 8.4, 7, -6, wall);
   boxC(-8.4, 0, -6, -8, 7, 4, wallB); boxC(8, 0, -6, 8.4, 7, 4, wallB);
   boxC(-8.4, 7, -6.4, 8.4, 7.3, -6, M('#b98a5a')); boxC(-8.4, 7, -6, -8, 7.3, 4, M('#b98a5a')); boxC(8, 7, -6, 8.4, 7.3, 4, M('#b98a5a'));
-  for (let x = -7.85; x < 7.9; x += 0.9) boxC(x, 0.3, -5.997, x + 0.45, 6.7, -5.993, M('#efd9b4'));
+  for (let x = -7.85; x < 7.9; x += 0.9) boxC(x, 3.1, -5.997, x + 0.45, 6.7, -5.993, M("#efd9b4"));
   // janela (parede esquerda) e porta (parede direita)
   boxC(-7.98, 2.4, -3.0, -7.9, 5.2, 0.4, M('#ffffff')); boxC(-7.9, 2.6, -2.8, -7.86, 5.0, 0.2, M('#9fd6ff', { roughness: 0.1, emissive: '#6fb8ff', emissiveIntensity: 0.25 }));
   R.door = grp(null, 7.95, 0, 1.6);
@@ -457,7 +457,7 @@ function buildRoom() {
 function buildBase() {
   const conc = M('#b9b7b0', { roughness: 0.9 }), concD = M('#a7a59e', { roughness: 0.9 });
   R.conc = [];
-  const C_ = (a, b, c, d, e, f, m, ord) => { const x = boxC(a, b, c, d, e, f, m); asm(x, () => C.conc0 + ord * (C.conc1 - C.conc0) / 6, 0.45, { dy: 6, s: 0.7 }); R.conc.push(x); return x; };
+  const C_ = (a, b, c, d, e, f, m, ord) => { const x = boxC(a, b, c, d, e, f, m); asm(x, () => C.conc0 + ord * (C.conc1 - C.conc0) / 6, 0.45, ord >= 4 ? { dy: 0, s: 0.01, ease: 'o' } : { dy: 6, s: 0.7 }); R.conc.push(x); return x; };
   C_(-5.85, -7.85, -5.45, 5.85, -7.25, 4, concD, 0);
   C_(-5.85, -7.25, -5.45, -5.25, -1.0, 4, conc, 1);
   C_(5.25, -7.25, -5.45, 5.85, -1.0, 4, conc, 2);
@@ -497,7 +497,7 @@ function buildBase() {
   for (const p of [V3(4.6, -0.7, 3.85), V3(11, -0.7, 3.85)]) sph(0.27, pm, p.x, p.y, p.z, R.pipeG);
   boxC(4.2, -2.2, 3.45, 5.0, -1.9, 4.0, M('#5d6675'), R.pipeG);
   R.fan = grp(R.pipeG, 4.6, -2.25, 3.72);
-  for (let k = 0; k < 4; k++) { const b = box(0.08, 0.02, 0.32, M('#e9e9e9'), 0, 0, 0, R.fan); b.rotation.y = k * Math.PI / 2; b.position.set(Math.sin(k * Math.PI / 2) * 0.16, 0, Math.cos(k * Math.PI / 2) * 0.16); }
+  for (let k = 0; k < 4; k++) { const b = box(0.08, 0.02, 0.32, M('#e9e9e9'), 0, 0, 0, R.fan); b.rotation.y = k * Math.PI / 2; b.position.set(Math.sin(k * Math.PI / 2) * 0.16, k * 0.006, Math.cos(k * Math.PI / 2) * 0.16); }
   asm(R.pipeG, () => C.pipe, 0.6, { dy: 2, s: 0.3 });
   // anão de jardim (o chapéu é a saída de ar)
   R.gnome = grp(null, 11, 0, 3.85);
