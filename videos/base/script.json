@@ -1,0 +1,145 @@
+{
+  "title": "Base secreta",
+  "header": [
+    "COMO CONSTRUIR UMA ",
+    "BASE SECRETA"
+  ],
+  "engine": "chatterbox",
+  "chatterbox": {
+    "ref": "ref_faber.wav",
+    "exaggeration": 0.6,
+    "cfg": 0.3
+  },
+  "voicePitch": 1.0,
+  "voice": "pt_BR-faber-medium",
+  "lengthScale": 0.97,
+  "gapLine": 0.1,
+  "gapBeat": 0.3,
+  "beats": [
+    {
+      "id": "hook",
+      "lines": [
+        {
+          "id": "h1",
+          "text": "Se você esconder a entrada de uma base secreta embaixo da sua cama,",
+          "pad": 0.2
+        },
+        {
+          "id": "h2",
+          "text": "pra entrar, vai ter que empurrar uma cama de cem quilos toda vez.",
+          "pad": 1.2
+        }
+      ]
+    },
+    {
+      "id": "trilho",
+      "lines": [
+        {
+          "id": "v1",
+          "text": "Então você põe a cama em trilhos com um motorzinho, que abre com um botão. Esse é o trilho motorizado.",
+          "hl": "trilho motorizado"
+        },
+        {
+          "id": "v2",
+          "text": "Mas o botão fica na parede, e a primeira visita que aperta descobre tudo.",
+          "pad": 1.2
+        }
+      ]
+    },
+    {
+      "id": "trava",
+      "lines": [
+        {
+          "id": "b1",
+          "text": "Então você esconde o botão dentro de um troféu na estante: girou o troféu, a cama anda. Essa é a trava secreta.",
+          "hl": "trava secreta"
+        }
+      ]
+    },
+    {
+      "id": "cavar",
+      "lines": [
+        {
+          "id": "c1",
+          "text": "Mas embaixo do alçapão só tem terra, e quando você cava, as paredes desmoronam.",
+          "pad": 1.2
+        },
+        {
+          "id": "c2",
+          "text": "Então você levanta paredes e teto de concreto armado, igual a um bunker. Essa é a estrutura.",
+          "hl": "estrutura"
+        }
+      ]
+    },
+    {
+      "id": "agua",
+      "lines": [
+        {
+          "id": "w1",
+          "text": "Mas na primeira chuva, a água atravessa o concreto e a base vira uma piscina.",
+          "pad": 1.2
+        },
+        {
+          "id": "w2",
+          "text": "Então você embrulha tudo numa manta de borracha e põe uma bomba que joga a água pra fora. Essa é a impermeabilização.",
+          "hl": "impermeabilização"
+        }
+      ]
+    },
+    {
+      "id": "ar",
+      "lines": [
+        {
+          "id": "a1",
+          "text": "Mas lá embaixo não entra ar, e em meia hora fica tão abafado que dá sono.",
+          "pad": 1.2
+        },
+        {
+          "id": "a2",
+          "text": "Então você puxa ar fresco por um cano que sai no jardim, disfarçado de anão de jardim. Essa é a ventilação.",
+          "hl": "ventilação"
+        }
+      ]
+    },
+    {
+      "id": "descer",
+      "lines": [
+        {
+          "id": "s1",
+          "text": "Mas descer por uma escadinha no escuro é pedir pra escorregar.",
+          "pad": 1.2
+        },
+        {
+          "id": "s2",
+          "text": "Então você instala um escorregador em espiral: você desce em dois segundos.",
+          "hl": "escorregador"
+        }
+      ]
+    },
+    {
+      "id": "decor",
+      "lines": [
+        {
+          "id": "d1",
+          "text": "Agora decore: um sofá, uma TV gigante, videogame, luz neon e um frigobar cheio de refrigerante."
+        }
+      ]
+    },
+    {
+      "id": "final",
+      "lines": [
+        {
+          "id": "o1",
+          "text": "Obra entregue: você construiu uma base secreta.",
+          "hl": "Obra entregue",
+          "pad": 0.4
+        },
+        {
+          "id": "o2",
+          "text": "Comenta aqui qual obra eu construo no próximo vídeo.",
+          "pad": 1.2
+        }
+      ]
+    }
+  ]
+}
